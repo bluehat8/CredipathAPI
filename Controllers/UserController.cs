@@ -61,27 +61,6 @@ namespace CredipathAPI.Controllers
 
 
 
-        //// GET: api/User
-        //[HttpGet]
-        //[Authorize(Policy = "AdminOnly")]
-        //public async Task<ActionResult<IEnumerable<User>>> GetUsers()
-        //{
-
-        //    var userClaims = User.Claims;
-        //    var userTypeClaim = userClaims.FirstOrDefault(c => c.Type == "usertype")?.Value;
-
-        //    if (userTypeClaim != "1")
-        //    {
-        //        return Unauthorized(new
-        //        {
-        //            success = false,
-        //            message = "Solo usuarios administradores tienen permisos para leer usuarios",
-        //        });
-        //    }
-
-        //    return await _context.Users.ToListAsync();
-        //}
-
         [HttpGet]
         [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
