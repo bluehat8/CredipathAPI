@@ -5,8 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDbContext<YourDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("YourDbContext") ?? throw new InvalidOperationException("Connection string 'YourDbContext' not found.")));
 
 builder.Services.AddDbContext<DataContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnection")));
@@ -75,6 +78,7 @@ builder.Services.AddAuthorization(options =>
 //Dependencies
 
 builder.Services.AddScoped<JwtAuthService>();
+builder.Services.AddScoped<RouteServices>();
 
 
 var app = builder.Build();

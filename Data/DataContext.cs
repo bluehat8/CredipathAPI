@@ -14,6 +14,7 @@ namespace CredipathAPI.Data
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Model.Route> Routes { get; set; }    
 
         public void setConnectionString()
         {
