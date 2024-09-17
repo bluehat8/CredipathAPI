@@ -84,12 +84,12 @@ namespace CredipathAPI.Controllers
             }
 
          
-            if (!string.IsNullOrEmpty(route.route_name))
-            {
+            if (route.route_name != "string")
+            { 
                 existingRoute.route_name = route.route_name;
             }
 
-            if (!string.IsNullOrEmpty(route.description))
+            if (route.description != "string")
             {
                 existingRoute.description = route.description;
             }

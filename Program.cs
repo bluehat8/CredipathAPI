@@ -8,8 +8,8 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<YourDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("YourDbContext") ?? throw new InvalidOperationException("Connection string 'YourDbContext' not found.")));
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnection") ?? throw new InvalidOperationException("Connection string 'YourDbContext' not found.")));
 
 builder.Services.AddDbContext<DataContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnection")));
@@ -79,7 +79,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<JwtAuthService>();
 builder.Services.AddScoped<RouteServices>();
-
+builder.Services.AddScoped<ClientService>();
 
 var app = builder.Build();
 
