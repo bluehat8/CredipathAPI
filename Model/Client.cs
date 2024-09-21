@@ -12,7 +12,8 @@ namespace CredipathAPI.Model
         public string? notes { get; set; }
         public string? address { get; set; }
         public int? creator { get; set; }
-        public int? RouteId { get; set; } 
-       
+        public int? RouteId { get; set; }
+        public virtual Route? Route { get; set; }
+
     }
 }
