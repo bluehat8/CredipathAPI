@@ -76,7 +76,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<JwtAuthService>();
 builder.Services.AddScoped<InterestTypeService>();
-
+builder.Services.AddScoped<PaymentFrequencyService>();
 
 
 var app = builder.Build();

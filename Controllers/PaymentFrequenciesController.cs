@@ -14,59 +14,59 @@ namespace CredipathAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class InterestTypeController : ControllerBase
+    public class PaymentFrequenciesController : ControllerBase
     {
-        private readonly InterestTypeService _interestTypesService;
+        private readonly PaymentFrequencyService paymentFrequencyService;
 
-        public InterestTypeController(InterestTypeService interestTypesService)
+        public PaymentFrequenciesController(PaymentFrequencyService _paymentFrequencyService)
         {
-            _interestTypesService = interestTypesService;
+            paymentFrequencyService = _paymentFrequencyService;
         }
 
         // GET: api/InterestTypes
         [HttpGet]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<ActionResult<IEnumerable<InterestTypes>>> GetInterestTypes()
+        public async Task<ActionResult<IEnumerable<Paymentfrequencies>>> GetPay()
         {
-            var interestTypes = await _interestTypesService.GetAllInterestTypesAsync();
-            return Ok(interestTypes);
+            var pay = await paymentFrequencyService.GetAllPaymenteFrequency();
+            return Ok(pay);
         }
 
         // GET: api/InterestTypes/5
         [HttpGet("{id}")]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<ActionResult<InterestTypes>> GetInterestType(int id)
+        public async Task<ActionResult<Paymentfrequencies>> GetPaybyid(int id)
         {
-            var interestType = await _interestTypesService.GetInterestTypeByIdAsync(id);
+            var pay = await paymentFrequencyService.GetPaymentFrequencybyid(id);
 
-            if (interestType == null)
+            if (pay == null)
             {
                 return NotFound();
             }
 
-            return Ok(interestType);
+            return Ok(pay);
         }
 
         // POST: api/InterestTypes
         [HttpPost]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<ActionResult<InterestTypes>> PostInterestType(InterestTypes interestType)
+        public async Task<ActionResult<Paymentfrequencies>> PostPaymentFrequency(Paymentfrequencies obj)
         {
-            await _interestTypesService.CreateInterestTypeAsync(interestType);
-            return CreatedAtAction(nameof(GetInterestType), new { id = interestType.Id }, interestType);
+            await paymentFrequencyService.CreatePaymentFrequencyAsync(obj);
+            return CreatedAtAction(nameof(GetPay), new { id = obj.Id }, obj);
         }
 
         // PUT: api/InterestTypes/5
         [HttpPut("{id}")]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> PutInterestType(int id, InterestTypes interestType)
+        public async Task<IActionResult> PutPayFrequency(int id, Paymentfrequencies obj)
         {
-            if (id != interestType.Id)
+            if (id != obj.Id)
             {
                 return BadRequest();
             }
 
-            var updated = await _interestTypesService.UpdateInterestTypeFieldsAsync(id, interestType);
+            var updated = await paymentFrequencyService.UpdatePaymentFrequencyFieldsAsync(id, obj);
             if (!updated)
             {
                 return NotFound();
@@ -78,9 +78,9 @@ namespace CredipathAPI.Controllers
         // DELETE: api/InterestTypes/5
         [HttpDelete("{id}")]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> DeleteInterestType(int id)
+        public async Task<IActionResult> DeletePay(int id)
         {
-            var deleted = await _interestTypesService.SoftDeleteInterestTypeAsync(id);
+            var deleted = await paymentFrequencyService.SoftDeleteInterestTypeAsync(id);
             if (!deleted)
             {
                 return NotFound();

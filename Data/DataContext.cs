@@ -17,6 +17,8 @@ namespace CredipathAPI.Data
         public DbSet<User> Users { get; set; }
         public DbSet<InterestTypes> InterestTypes { get; set; } 
 
+        public DbSet<Paymentfrequencies> paymentfrequencies { get; set; }   
+
         public void setConnectionString()
         {
             var config = new ConfigurationBuilder()
