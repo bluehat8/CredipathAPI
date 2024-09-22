@@ -1,6 +1,6 @@
 ﻿using CredipathAPI.Base;
 using static CredipathAPI.Constants;
-
+    
 namespace CredipathAPI.Model
 {
     public class User:BaseEntity

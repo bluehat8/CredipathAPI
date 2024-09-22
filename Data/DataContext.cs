@@ -1,5 +1,6 @@
 ﻿using CredipathAPI.Model;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 
 namespace CredipathAPI.Data
 {
@@ -14,6 +15,7 @@ namespace CredipathAPI.Data
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<InterestTypes> InterestTypes { get; set; } 
 
         public void setConnectionString()
         {

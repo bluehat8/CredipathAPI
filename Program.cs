@@ -75,6 +75,8 @@ builder.Services.AddAuthorization(options =>
 //Dependencies
 
 builder.Services.AddScoped<JwtAuthService>();
+builder.Services.AddScoped<InterestTypeService>();
+
 
 
 var app = builder.Build();
