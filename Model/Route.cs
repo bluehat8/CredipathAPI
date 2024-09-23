@@ -8,5 +8,6 @@ namespace CredipathAPI.Model
         public string? route_name { get; set; } 
         public string? description { get; set; }
         public required ICollection<Client> Clients { get; set; }
+        public ICollection<UserRoute> UserRoutes { get; set; }
     }
 }

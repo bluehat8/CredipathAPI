@@ -2,12 +2,11 @@
 
 namespace CredipathAPI.Model
 {
-    public class UserPermission:BaseEntity
+    public class UserRoute:BaseEntity
     {
         public int UserId { get; set; }
-        public int PermissionId { get; set; }
-
+        public int RouteId { get; set; }
         public required User User { get; set; }
-        public required Permission Permission { get; set; }
+        public required Route Route { get; set; }
     }
 }

@@ -1,8 +1,9 @@
-﻿namespace CredipathAPI.Model
+﻿using CredipathAPI.Base;
+
+namespace CredipathAPI.Model
 {
-    public class Permission
+    public class Permission:BaseEntity
     {
-        public int PermissionId { get; set; }
         public required string Module { get; set; } // Ej: Prestamos, Pagos
         public required string Action { get; set; } // Ej: Agregar, Editar, Eliminar, Abonar
 

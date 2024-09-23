@@ -13,6 +13,9 @@ namespace CredipathAPI.Model
         public string? rememberToken { get; set; }
         public int? currentTeamId { get; set; }
         public UserType UserType { get; set; }
+        public ICollection<UserPermission> UserPermissions { get; set; }
+        public ICollection<UserRoute> UserRoutes { get; set; }
+
 
     }
 }
