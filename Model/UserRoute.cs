@@ -6,7 +6,7 @@ namespace CredipathAPI.Model
     {
         public int UserId { get; set; }
         public int RouteId { get; set; }
-        public required User User { get; set; }
-        public required Route Route { get; set; }
+        public User User { get; set; }
+        public Route Route { get; set; }
     }
 }

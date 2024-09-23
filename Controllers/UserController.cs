@@ -1,22 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CredipathAPI.Data;
-using CredipathAPI.Model;
 using CredipathAPI.Helpers;
-using Newtonsoft.Json;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Diagnostics.SymbolStore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authorization;
+using CredipathAPI.Model;
 using CredipathAPI.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CredipathAPI.Controllers
 {
@@ -24,22 +10,52 @@ namespace CredipathAPI.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly DataContext _context;
-        private readonly JwtAuthService _authService;
+        private readonly UserService _userService;
 
-        public UserController(DataContext context, JwtAuthService authService)
+        public UserController(UserService userService)
         {
-            _context = context;
-            _authService = authService;
+            _userService = userService;
+        }
+
+
+        [HttpPost("RegisterAdmin")]
+        public async Task<IActionResult> RegisterUser([FromBody] UserDTO dto)
+        {
+            if (dto == null)
+            {
+                return BadRequest("Los datos de usuario son requeridos.");
+            }
+
+            try
+            {
+                var user = new User
+                {
+                    name = dto.Name,
+                    username = dto.Username,
+                    email = dto.Email,
+                    password = dto.Password,
+                    note = dto.Note,
+                    address = dto.Address,
+                    code = dto.Code,
+                    UserType = Constants.UserType.admin,
+                };
+
+                var registeredUser = await _userService.RegisterUserAsync(user, dto.Password);
+                return Ok(registeredUser);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost]
         [Route("Login")]
         public async Task<IActionResult> Login([FromBody] LoginModel loginData)
         {
-            var userObj = await _authService.GetUserByUsername(loginData.username);
+            var userObj = await _userService.GetUserByUsernameAsync(loginData.username);
 
-            if (userObj == null || !_authService.VerifyPassword(userObj, loginData.password))
+            if (userObj == null || !_userService.VerifyPassword(userObj, loginData.password))
             {
                 return Unauthorized(new
                 {
@@ -49,7 +65,7 @@ namespace CredipathAPI.Controllers
                 });
             }
 
-            var token = _authService.GenerateJwtToken(userObj);
+            var token = _userService.GenerateJwtToken(userObj);
 
             return Ok(new
             {
@@ -59,40 +75,36 @@ namespace CredipathAPI.Controllers
             });
         }
 
-
+        [HttpPost]
+        [Route("RegisterCollaborator")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<User>> RegisterCollaborator(UserDTO dto)
+        {
+            var user = await _userService.RegisterCollaboratorAsync(dto);
+            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+        }
 
         [HttpGet]
         [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
-            return await _context.Users.ToListAsync();
+            var users = await _userService.GetUsersAsync();
+            return Ok(users);
         }
 
-        [HttpGet("claims")]
-        public IActionResult GetClaims()
-        {
-            var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
-            return Ok(claims);
-        }
-
-
-
-        // GET: api/User/5
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userService.GetUserByIdAsync(id);
 
             if (user == null)
             {
                 return NotFound();
             }
 
-            return user;
+            return Ok(user);
         }
 
-        // PUT: api/User/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUser(int id, User user)
         {
@@ -101,63 +113,29 @@ namespace CredipathAPI.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(user).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _userService.UpdateUserAsync(user);
             return NoContent();
         }
 
-        // POST: api/User
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
-        {
-            user.Id = 0;
-
-            var passwordHasher = new PasswordHasher<User>();
-            user.password = passwordHasher.HashPassword(user, user.password);
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
-        }
-
-
-        // DELETE: api/User/5
         [HttpDelete("{id}")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userService.GetUserByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
             }
 
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
+            await _userService.DeleteUserAsync(user);
             return NoContent();
         }
 
-        private bool UserExists(int id)
+        [HttpGet("claims")]
+        public IActionResult GetClaims()
         {
-            return _context.Users.Any(e => e.Id == id);
+            var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+            return Ok(claims);
         }
     }
 }

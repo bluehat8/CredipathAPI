@@ -77,11 +77,12 @@ builder.Services.AddAuthorization(options =>
 
 //Dependencies
 
-builder.Services.AddScoped<JwtAuthService>();
+builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<RouteServices>();
 builder.Services.AddScoped<ClientService>();
 builder.Services.AddScoped<InterestTypeService>();
 builder.Services.AddScoped<PaymentFrequencyService>();
+builder.Services.AddScoped<PermissionServices>();
 
 
 var app = builder.Build();

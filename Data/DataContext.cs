@@ -22,6 +22,7 @@ namespace CredipathAPI.Data
         public DbSet<InterestTypes> InterestTypes { get; set; } 
 
         public DbSet<Paymentfrequencies> paymentfrequencies { get; set; }   
+        public DbSet<UserRoute> userRoutes { get; set; }
 
         public void setConnectionString()
         {
@@ -34,6 +35,16 @@ namespace CredipathAPI.Data
 
             Conexion = connectionString;
 
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Configurar el email como único
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.email)
+                .IsUnique();
         }
     }
 }
