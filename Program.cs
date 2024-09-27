@@ -83,6 +83,9 @@ builder.Services.AddScoped<ClientService>();
 builder.Services.AddScoped<InterestTypeService>();
 builder.Services.AddScoped<PaymentFrequencyService>();
 builder.Services.AddScoped<PermissionServices>();
+builder.Services.AddScoped<LoansService>();
+builder.Services.AddScoped<ExcludedDaysService>();
+
 
 
 var app = builder.Build();

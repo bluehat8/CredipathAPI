@@ -4,6 +4,7 @@ using CredipathAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CredipathAPI.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20240926002757_createloans")]
+    partial class createloans
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -70,40 +73,6 @@ namespace CredipathAPI.Migrations
                     b.ToTable("Clients");
                 });
 
-            modelBuilder.Entity("CredipathAPI.Model.ExcludedDays", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("excludes_day_name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("loan_id")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("loansId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("loansId");
-
-                    b.ToTable("excludedDays");
-                });
-
             modelBuilder.Entity("CredipathAPI.Model.InterestTypes", b =>
                 {
                     b.Property<int>("Id")
@@ -141,8 +110,17 @@ namespace CredipathAPI.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("InterestTypesId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentfrequenciesId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -176,6 +154,12 @@ namespace CredipathAPI.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("InterestTypesId");
+
+                    b.HasIndex("PaymentfrequenciesId");
 
                     b.ToTable("Loans");
                 });
@@ -396,13 +380,25 @@ namespace CredipathAPI.Migrations
                     b.Navigation("Route");
                 });
 
-            modelBuilder.Entity("CredipathAPI.Model.ExcludedDays", b =>
+            modelBuilder.Entity("CredipathAPI.Model.Loans", b =>
                 {
-                    b.HasOne("CredipathAPI.Model.Loans", "loans")
+                    b.HasOne("CredipathAPI.Model.Client", "Client")
                         .WithMany()
-                        .HasForeignKey("loansId");
+                        .HasForeignKey("ClientId");
 
-                    b.Navigation("loans");
+                    b.HasOne("CredipathAPI.Model.InterestTypes", "InterestTypes")
+                        .WithMany()
+                        .HasForeignKey("InterestTypesId");
+
+                    b.HasOne("CredipathAPI.Model.Paymentfrequencies", "Paymentfrequencies")
+                        .WithMany()
+                        .HasForeignKey("PaymentfrequenciesId");
+
+                    b.Navigation("Client");
+
+                    b.Navigation("InterestTypes");
+
+                    b.Navigation("Paymentfrequencies");
                 });
 
             modelBuilder.Entity("CredipathAPI.Model.UserPermission", b =>

@@ -4,7 +4,7 @@ using Microsoft.Identity.Client;
 
 namespace CredipathAPI.Data
 {
-    public class DataContext: DbContext
+    public class DataContext : DbContext
     {
 
         public string? Conexion { get; set; }
@@ -15,14 +15,16 @@ namespace CredipathAPI.Data
         }
 
         public DbSet<User> Users { get; set; }
-        public DbSet<Model.Route> Routes { get; set; }    
-        public DbSet<Client> Clients { get; set; }  
+        public DbSet<Model.Route> Routes { get; set; }
+        public DbSet<Client> Clients { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
-        public DbSet<InterestTypes> InterestTypes { get; set; } 
-
-        public DbSet<Paymentfrequencies> paymentfrequencies { get; set; }   
+        public DbSet<InterestTypes> InterestTypes { get; set; }
+        public DbSet<Loans> Loans { get; set; }
+        public DbSet<Paymentfrequencies> paymentfrequencies { get; set; }
         public DbSet<UserRoute> userRoutes { get; set; }
+        public DbSet<ExcludedDays> excludedDays { get; set; }
+
 
         public void setConnectionString()
         {
