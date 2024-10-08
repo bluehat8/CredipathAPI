@@ -53,7 +53,7 @@ namespace CredipathAPI.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<Loans>> Postloan(Loans obj)
         {
-            await loansService.CreateloanAsync(obj);
+            await loansService.CreateLoanAsync(obj);
             return CreatedAtAction(nameof(Getloan), new { id = obj.Id }, obj);
         }
 
