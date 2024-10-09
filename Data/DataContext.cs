@@ -25,6 +25,8 @@ namespace CredipathAPI.Data
         public DbSet<UserRoute> userRoutes { get; set; }
         public DbSet<ExcludedDays> excludedDays { get; set; }
         public DbSet<LoanAmortization> LoanAmortization { get; set; }
+        public DbSet<ViewExpectedvsReality> viewExpectedvsRealities { get; set; }
+
 
 
         public void setConnectionString()

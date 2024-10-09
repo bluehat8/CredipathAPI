@@ -85,6 +85,7 @@ builder.Services.AddScoped<PaymentFrequencyService>();
 builder.Services.AddScoped<PermissionServices>();
 builder.Services.AddScoped<LoansService>();
 builder.Services.AddScoped<ExcludedDaysService>();
+builder.Services.AddScoped<ViewExpectedvsRealityService>();
 
 
 
