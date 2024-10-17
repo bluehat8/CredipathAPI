@@ -14,6 +14,7 @@ namespace CredipathAPI.Model
         public decimal PrincipalAmount { get; set; }
         public decimal BalanceRemaining { get; set; }
         public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.pending;
+        //public Loans Loan { get; set; }
     }
 
 }
