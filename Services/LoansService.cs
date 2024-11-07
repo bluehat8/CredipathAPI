@@ -1,7 +1,9 @@
 ﻿using CredipathAPI.Data;
+using CredipathAPI.Helpers;
 using CredipathAPI.Model;
 using Microsoft.EntityFrameworkCore;
 using static CredipathAPI.Constants;
+using static CredipathAPI.Helpers.Struct;
 
 namespace CredipathAPI.Services
 {
@@ -38,75 +40,78 @@ namespace CredipathAPI.Services
 
         private async Task GenerateLoanAmortization(Loans loan)
         {
-            var amortizations = new List<LoanAmortization>();
-
-            decimal loanAmount = loan.amount;
-            decimal interestRate = loan.interst_rate / 100; 
-            int totalInstallments = loan.installments;
-            DateTime paymentDate = loan.loan_date;
-
-            switch (loan.interest_type_id)
+            var frequency = await _context.paymentfrequencies.FindAsync(loan.frecuency_id);
+            if (frequency == null)
             {
-                case 1: // Interés simple sobre el capital inicial
-                    amortizations = GenerateSimpleInterestAmortization(loan.Id,loanAmount, interestRate, totalInstallments, paymentDate);
-                    break;
-                case 2: // Interés sobre cada cuota
-                    amortizations = GenerateAmortizationWithInterestPerInstallment(loan.Id,loanAmount, interestRate, totalInstallments, paymentDate);
-                    break;
-                case 3: // Interés compuesto bancario
-                    amortizations = GenerateCompoundInterestAmortization(loan.Id,loanAmount, interestRate, totalInstallments, paymentDate);
-                    break;
-                default:
-                    throw new Exception("Tipo de interés no reconocido.");
+                throw new Exception("Frecuencia de pago no encontrada.");
             }
+
+            var amortizationParams = new AmortizationParams
+            {
+                LoanId = loan.Id,
+                LoanAmount = loan.amount,
+                InterestRate = loan.interst_rate / 100,
+                Installments = loan.installments,
+                StartDate = loan.loan_date,
+                FrequencyName = frequency.frequency_name
+            };
+
+            List<LoanAmortization> amortizations = loan.interest_type_id switch
+            {
+                1 => GenerateSimpleInterestAmortization(amortizationParams),
+                2 => GenerateAmortizationWithInterestPerInstallment(amortizationParams),
+                3 => GenerateCompoundInterestAmortization(amortizationParams),
+                _ => throw new Exception("Tipo de interés no reconocido.")
+            };
 
             _context.LoanAmortization.AddRange(amortizations);
         }
 
-        private List<LoanAmortization> GenerateSimpleInterestAmortization(int loanId, decimal loanAmount, decimal interestRate, int installments, DateTime startDate)
+
+        private List<LoanAmortization> GenerateSimpleInterestAmortization(AmortizationParams parameters)
         {
             var amortizations = new List<LoanAmortization>();
-            decimal fixedPayment = loanAmount / installments;
-            decimal totalInterest = loanAmount * interestRate;
+            decimal fixedPayment = parameters.LoanAmount / parameters.Installments;
+            decimal totalInterest = parameters.LoanAmount * parameters.InterestRate;
 
-            for (int i = 1; i <= installments; i++)
+            for (int i = 1; i <= parameters.Installments; i++)
             {
                 amortizations.Add(new LoanAmortization
                 {
-                    LoanId = loanId,
+                    LoanId = parameters.LoanId,
                     PaymentNumber = i,
-                    PaymentDate = startDate.AddMonths(i), // Dependiendo de la frecuencia de pago
-                    RealPaymentAmount = fixedPayment + totalInterest / installments,
-                    InterestAmount = totalInterest / installments,
-                    PaymentAmount = fixedPayment + totalInterest / installments,
+                    PaymentDate = Helper.CalculateNextPaymentDate(parameters.StartDate, i, parameters.FrequencyName),
+                    RealPaymentAmount = fixedPayment + totalInterest / parameters.Installments,
+                    InterestAmount = totalInterest / parameters.Installments,
+                    PaymentAmount = fixedPayment + totalInterest / parameters.Installments,
                     PrincipalAmount = fixedPayment,
-                    BalanceRemaining = loanAmount - (fixedPayment * i),
-                    PaymentStatus = PaymentStatus.pending 
+                    BalanceRemaining = parameters.LoanAmount - (fixedPayment * i),
+                    PaymentStatus = PaymentStatus.pending
                 });
             }
 
             return amortizations;
         }
 
-        private List<LoanAmortization> GenerateAmortizationWithInterestPerInstallment(int loanId, decimal loanAmount, decimal interestRate, int installments, DateTime startDate)
+        private List<LoanAmortization> GenerateAmortizationWithInterestPerInstallment(AmortizationParams parameters)
         {
             var amortizations = new List<LoanAmortization>();
-            decimal fixedPayment = loanAmount / installments;
+            decimal fixedPayment = parameters.LoanAmount / parameters.Installments;
 
-            for (int i = 1; i <= installments; i++)
+            for (int i = 1; i <= parameters.Installments; i++)
             {
-                decimal interest = (loanAmount - (fixedPayment * (i - 1))) * interestRate;
+                decimal interest = (parameters.LoanAmount - (fixedPayment * (i - 1))) * parameters.InterestRate;
 
                 amortizations.Add(new LoanAmortization
                 {
-                    LoanId = loanId,
+                    LoanId = parameters.LoanId,
                     PaymentNumber = i,
-                    PaymentDate = startDate.AddMonths(i),
+                    PaymentDate = Helper.CalculateNextPaymentDate(parameters.StartDate, i, parameters.FrequencyName),
                     RealPaymentAmount = fixedPayment + interest,
                     InterestAmount = interest,
                     PaymentAmount = fixedPayment + interest,
                     PrincipalAmount = fixedPayment,
-                    BalanceRemaining = loanAmount - (fixedPayment * i),
+                    BalanceRemaining = parameters.LoanAmount - (fixedPayment * i),
                     PaymentStatus = PaymentStatus.pending
                 });
             }
@@ -114,35 +119,36 @@ namespace CredipathAPI.Services
             return amortizations;
         }
 
-        private List<LoanAmortization> GenerateCompoundInterestAmortization(int loanId, decimal loanAmount, decimal interestRate, int installments, DateTime startDate)
+        private List<LoanAmortization> GenerateCompoundInterestAmortization(AmortizationParams parameters)
         {
             var amortizations = new List<LoanAmortization>();
-            decimal compoundFactor = (decimal)Math.Pow(1 + (double)interestRate, installments);
-            decimal fixedPayment = loanAmount * (interestRate * compoundFactor) / (compoundFactor - 1);
+            decimal compoundFactor = (decimal)Math.Pow(1 + (double)parameters.InterestRate, parameters.Installments);
+            decimal fixedPayment = parameters.LoanAmount * (parameters.InterestRate * compoundFactor) / (compoundFactor - 1);
 
-            for (int i = 1; i <= installments; i++)
+            for (int i = 1; i <= parameters.Installments; i++)
             {
-                decimal interest = loanAmount * interestRate;
+                decimal interest = parameters.LoanAmount * parameters.InterestRate;
                 decimal principal = fixedPayment - interest;
 
                 amortizations.Add(new LoanAmortization
                 {
-                    LoanId = loanId,
+                    LoanId = parameters.LoanId,
                     PaymentNumber = i,
-                    PaymentDate = startDate.AddMonths(i),
+                    PaymentDate = Helper.CalculateNextPaymentDate(parameters.StartDate, i, parameters.FrequencyName),
                     RealPaymentAmount = fixedPayment,
                     InterestAmount = interest,
                     PaymentAmount = fixedPayment,
                     PrincipalAmount = principal,
-                    BalanceRemaining = loanAmount - principal,
+                    BalanceRemaining = parameters.LoanAmount - principal,
                     PaymentStatus = PaymentStatus.pending
                 });
 
-                loanAmount -= principal;
+                parameters.LoanAmount -= principal;
             }
 
             return amortizations;
         }
+
 
         public async Task<bool> UpdateLoanAsync(int id, Loans loan)
         {
@@ -199,6 +205,13 @@ namespace CredipathAPI.Services
 
             existingloan.UpdatedAt = DateTime.UtcNow;
 
+            var existingAmortizations = await _context.LoanAmortization.Where(a => a.LoanId == id).ToListAsync();
+            _context.LoanAmortization.RemoveRange(existingAmortizations);
+            await _context.SaveChangesAsync();
+
+            //Regenerando las amortizaciones
+            await GenerateLoanAmortization(existingloan);
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -212,6 +225,17 @@ namespace CredipathAPI.Services
             }
 
             loan.Active = false;
+
+            // Desactivando las amortizaciones asociadas
+            var amortizations = await _context.LoanAmortization
+                .Where(a => a.LoanId == id)
+                .ToListAsync();
+
+            foreach (var amortization in amortizations)
+            {
+                amortization.Active = false;
+            }
+
             await _context.SaveChangesAsync();
             return true;
         }
