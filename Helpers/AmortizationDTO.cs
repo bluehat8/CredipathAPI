@@ -13,5 +13,6 @@ namespace CredipathAPI.Helpers
         public int ClientId { get; set; }
         public string Code { get; set; }
         public string ClientName { get; set; }
+        public int PaymentNumber { get; set; }
     }
 }

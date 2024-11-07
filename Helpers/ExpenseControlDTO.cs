@@ -11,6 +11,7 @@ namespace CredipathAPI.Helpers
         public DateTime PaymentDate { get; set; }
         public string PaymentStatus { get; set; }
         public string PayerName { get; set; }
-        public string TransactionType { get; set; } 
+        public string TransactionType { get; set; }
+        public int PaymentNumber { get; set; }
     }
 }

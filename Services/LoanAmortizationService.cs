@@ -63,6 +63,7 @@ namespace CredipathAPI.Services
                                                   PaymentStatus = la.PaymentStatus,
                                                   LoanId = la.LoanId,
                                                   LoanAmount = l.amount,
+                                                  PaymentNumber = la.PaymentNumber,
                                                   ClientId = u.Id,
                                                   ClientName = u.name,
                                                   Code = u.code
@@ -87,7 +88,9 @@ namespace CredipathAPI.Services
                                     PaymentDate = la.PaymentDate,
                                     PaymentStatus = Helper.GetPaymentStatusText(la.PaymentStatus),
                                     PayerName = u.name,
-                                    TransactionType = "Pago"
+                                    TransactionType = "Pago",
+                                    PaymentNumber = la.PaymentNumber,
+                                    //Route
                                 };
 
             if (startDate.HasValue && endDate.HasValue)
@@ -109,7 +112,9 @@ namespace CredipathAPI.Services
                                  PaymentDate = l.loan_date,
                                  PaymentStatus = Helper.GetPaymentStatusText(PaymentStatus.pending),
                                  PayerName = null,
-                                 TransactionType = "Préstamo"
+                                 TransactionType = "Préstamo",
+                                 //RouteName = 
+
                              };
 
             if (startDate.HasValue && endDate.HasValue)

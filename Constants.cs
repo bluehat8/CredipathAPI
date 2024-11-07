@@ -15,5 +15,14 @@
             overdue = 2,
             reassigned = 3   
         }
+
+        public enum PaymentFrequency
+        {
+            Diario,
+            Semanal,
+            Quincenal,
+            Mensual,
+            Manual
+        }
     }
 }
