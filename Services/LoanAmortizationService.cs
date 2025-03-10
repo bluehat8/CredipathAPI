@@ -1,4 +1,5 @@
 ﻿using CredipathAPI.Data;
+using CredipathAPI.DTOs;
 using CredipathAPI.Helpers;
 using CredipathAPI.Model;
 using Microsoft.EntityFrameworkCore;
@@ -73,15 +74,84 @@ namespace CredipathAPI.Services
         }
 
 
+        public async Task<List<PaymentControlDTO>> GetPaymentsAsync(DateTime? startDate, DateTime? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+            {
+                endDate = DateTime.Now;
+                startDate = endDate.Value.AddMonths(12);
+            }
+
+            var paymentsQuery = from la in _context.LoanAmortization
+                                join l in _context.Loans on la.LoanId equals l.Id
+                                join u in _context.Clients on l.client_id equals u.Id
+                                join r in _context.Routes on u.RouteId equals r.Id into routeGroup
+                                from route in routeGroup.DefaultIfEmpty()
+                                select new PaymentControlDTO
+                                {
+                                    LoanId = l.Id,
+                                    PaymentAmount = la.PaymentAmount,
+                                    PaymentDate = la.PaymentDate,
+                                    PaymentStatus = Helper.GetPaymentStatusText(la.PaymentStatus),
+                                    PayerName = u.name,
+                                    PaymentNumber = la.PaymentNumber,
+                                    RouteName = route != null ? route.route_name : "Sin ruta asignada"
+                                };
+
+            paymentsQuery = paymentsQuery.Where(la => la.PaymentDate >= startDate && la.PaymentDate <= endDate);
+
+            return await paymentsQuery.ToListAsync();
+        }
+
+
+        public async Task<List<LoanControlDTO>> GetLoansAsync(DateTime? startDate, DateTime? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+            {
+                endDate = DateTime.Now;
+                startDate = endDate.Value.AddMonths(-3);
+            }
+
+            var loansQuery = from l in _context.Loans
+                             join u in _context.Clients on l.client_id equals u.Id
+                             join r in _context.Routes on u.RouteId equals r.Id into routeGroup
+                             from route in routeGroup.DefaultIfEmpty()
+                             select new LoanControlDTO
+                             {
+                                 LoanId = l.Id,
+                                 LoanAmount = l.amount,
+                                 LoanDate = l.loan_date,
+                                 LoanInstallments = l.installments,
+                                 ClientName = u.name,
+                                 ClientCode = u.code,
+                                 RouteName = route != null ? route.route_name : "Sin ruta asignada"
+                             };
+
+            loansQuery = loansQuery.Where(l => l.LoanDate >= startDate && l.LoanDate <= endDate);
+
+            return await loansQuery.ToListAsync();
+        }
+
+
+
         public async Task<List<ExpenseControlDTO>> GetExpenseControlAsync(DateTime? startDate, DateTime? endDate)
         {
+            if (!startDate.HasValue || !endDate.HasValue)
+            {
+                endDate = DateTime.Now;
+                startDate = endDate.Value.AddMonths(-3);
+            }
+
             // Listado de pagos (amortizaciones)
             var paymentsQuery = from la in _context.LoanAmortization
                                 join l in _context.Loans on la.LoanId equals l.Id
                                 join u in _context.Clients on l.client_id equals u.Id
+                                join r in _context.Routes on u.RouteId equals r.Id into routeGroup
+                                from route in routeGroup.DefaultIfEmpty()
                                 select new ExpenseControlDTO
                                 {
                                     LoanId = l.Id,
+                                
                                     LoanAmount = l.amount,
                                     ClientName = u.name,
                                     PaymentAmount = la.PaymentAmount,
@@ -90,44 +160,39 @@ namespace CredipathAPI.Services
                                     PayerName = u.name,
                                     TransactionType = "Pago",
                                     PaymentNumber = la.PaymentNumber,
-                                    //Route
+                                    RouteName = route != null ? route.route_name : "Sin ruta asignada"
                                 };
 
-            if (startDate.HasValue && endDate.HasValue)
-            {
-                paymentsQuery = paymentsQuery.Where(la => la.PaymentDate >= startDate && la.PaymentDate <= endDate);
-            }
+            paymentsQuery = paymentsQuery.Where(la => la.PaymentDate >= startDate && la.PaymentDate <= endDate);
 
             var payments = await paymentsQuery.ToListAsync();
 
             // Listado de préstamos realizados
             var loansQuery = from l in _context.Loans
                              join u in _context.Clients on l.client_id equals u.Id
+                             join r in _context.Routes on u.RouteId equals r.Id into routeGroup
+                             from route in routeGroup.DefaultIfEmpty()
                              select new ExpenseControlDTO
                              {
                                  LoanId = l.Id,
                                  LoanAmount = l.amount,
                                  ClientName = u.name,
-                                 PaymentAmount = 0, 
+                                 PaymentAmount = 0, // No hay monto de pago para los préstamos
                                  PaymentDate = l.loan_date,
                                  PaymentStatus = Helper.GetPaymentStatusText(PaymentStatus.pending),
-                                 PayerName = null,
+                                 PayerName = null, // No hay pagador en la creación del préstamo
                                  TransactionType = "Préstamo",
-                                 //RouteName = 
-
+                                 RouteName = route != null ? route.route_name : "Sin ruta asignada"
                              };
 
-            if (startDate.HasValue && endDate.HasValue)
-            {
-                loansQuery = loansQuery.Where(l => l.PaymentDate >= startDate && l.PaymentDate <= endDate);
-            }
+            loansQuery = loansQuery.Where(l => l.PaymentDate >= startDate && l.PaymentDate <= endDate);
 
             var loans = await loansQuery.ToListAsync();
 
             var expenseControl = payments.Concat(loans).ToList();
-            //s
             return expenseControl;
         }
+
 
 
 

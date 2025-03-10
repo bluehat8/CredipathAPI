@@ -37,24 +37,67 @@ namespace CredipathAPI.Controllers
             return BadRequest(new { message = "No hay amortizaciones vencidas para actualizar." });
         }
 
-        [HttpGet("GetExpenseControl")]
-        public async Task<IActionResult> GetExpenseControl([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        //[HttpGet("GetExpenseControl")]
+        //public async Task<IActionResult> GetExpenseControl([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+        //{
+        //    try
+        //    {
+        //        var expenseControl = await _loanAmortizationService.GetExpenseControlAsync(startDate, endDate);
+
+        //        if (expenseControl == null || !expenseControl.Any())
+        //        {
+        //            return NotFound("No se encontraron registros de pagos o préstamos en el rango de fechas proporcionado.");
+        //        }
+
+        //        return Ok(expenseControl);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, $"Ocurrió un error al obtener el control de gastos: {ex.Message}");
+        //    }
+        //}
+
+
+        [HttpGet("GetPaymentsControl")]
+        public async Task<IActionResult> GetPaymentsControl([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             try
             {
-                var expenseControl = await _loanAmortizationService.GetExpenseControlAsync(startDate, endDate);
+                var payments = await _loanAmortizationService.GetPaymentsAsync(startDate, endDate);
 
-                if (expenseControl == null || !expenseControl.Any())
+                if (!payments.Any())
                 {
-                    return NotFound("No se encontraron registros de pagos o préstamos en el rango de fechas proporcionado.");
+                    return NotFound("No se encontraron pagos en el rango de fechas proporcionado.");
                 }
 
-                return Ok(expenseControl);
+                return Ok(payments);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Ocurrió un error al obtener el control de gastos: {ex.Message}");
+                return StatusCode(500, $"Ocurrió un error al obtener los pagos: {ex.Message}");
             }
         }
+
+        [HttpGet("GetLoansControl")]
+        public async Task<IActionResult> GetLoansControl([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+        {
+            try
+            {
+                var loans = await _loanAmortizationService.GetLoansAsync(startDate, endDate);
+
+                if (!loans.Any())
+                {
+                    return NotFound("No se encontraron préstamos en el rango de fechas proporcionado.");
+                }
+
+                return Ok(loans);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ocurrió un error al obtener los préstamos: {ex.Message}");
+            }
+        }
+
+
     }
 }

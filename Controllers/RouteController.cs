@@ -17,6 +17,7 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using CredipathAPI.Services;
+using CredipathAPI.DTOs;
 
 namespace CredipathAPI.Controllers
 {
@@ -59,10 +60,17 @@ namespace CredipathAPI.Controllers
 
         [HttpPost]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<ActionResult<Model.Route>> PostRoute(Model.Route route)
+        public async Task<ActionResult<Model.Route>> PostRoute(RouteDTO routeDto)
         {
-            await _routeService.CreateRouteAsync(route);
-            return CreatedAtAction(nameof(GetRoute), new { id = route.Id }, route);
+            Model.Route newRoute = new Model.Route
+            {
+                route_name = routeDto.route_name,
+                description = routeDto.description,
+                Clients = null  
+            };
+
+            await _routeService.CreateRouteAsync(newRoute);
+            return CreatedAtAction(nameof(GetRoute), new { id = newRoute.Id }, newRoute);
         }
 
 
@@ -73,9 +81,8 @@ namespace CredipathAPI.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> PutRoute(int id, Model.Route route)
+        public async Task<IActionResult> PutRoute(int id, RouteDTO routeDto)
         {
-            // Buscar la ruta existente por ID
             var existingRoute = await _routeService.GetRouteByIdAsync(id);
 
             if (existingRoute == null)
@@ -83,15 +90,14 @@ namespace CredipathAPI.Controllers
                 return NotFound();
             }
 
-         
-            if (route.route_name != "string")
-            { 
-                existingRoute.route_name = route.route_name;
+            if (!string.IsNullOrWhiteSpace(routeDto.route_name))
+            {
+                existingRoute.route_name = routeDto.route_name;
             }
 
-            if (route.description != "string")
+            if (!string.IsNullOrWhiteSpace(routeDto.description))
             {
-                existingRoute.description = route.description;
+                existingRoute.description = routeDto.description;
             }
 
             existingRoute.UpdatedAt = DateTime.UtcNow;
@@ -100,6 +106,7 @@ namespace CredipathAPI.Controllers
 
             return NoContent();
         }
+
 
 
         // DELETE: api/Route/5

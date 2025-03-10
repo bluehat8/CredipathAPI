@@ -1,17 +1,12 @@
-﻿using static CredipathAPI.Constants;
-
-namespace CredipathAPI.Helpers
+﻿namespace CredipathAPI.DTOs
 {
-    public class ExpenseControlDTO
+    public class PaymentControlDTO
     {
         public int LoanId { get; set; }
-        public decimal LoanAmount { get; set; }
-        public string? ClientName { get; set; }
         public decimal PaymentAmount { get; set; }
         public DateTime PaymentDate { get; set; }
         public string? PaymentStatus { get; set; }
         public string? PayerName { get; set; }
-        public string? TransactionType { get; set; }
         public int PaymentNumber { get; set; }
         public string? RouteName { get; set; }
     }
