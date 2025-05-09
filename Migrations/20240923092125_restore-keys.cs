@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -11,25 +11,13 @@ namespace CredipathAPI.Migrations
             /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Agregar la llave foránea RouteId en Clients
-            migrationBuilder.AddForeignKey(
-                name: "FK_Clients_Routes_RouteId",
-                table: "Clients",
-                column: "RouteId",
-                principalTable: "Routes",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull // Permite que Route sea opcional
-            );
+            // Llave foránea FK_Clients_Routes_RouteId ya creada en una migración anterior. No es necesario agregarla de nuevo.
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Eliminar la llave foránea si se hace rollback
-            migrationBuilder.DropForeignKey(
-                name: "FK_Clients_Routes_RouteId",
-                table: "Clients"
-            );
+            // No se elimina la llave foránea aquí porque no fue agregada en esta migración.
         }
       }
 }
