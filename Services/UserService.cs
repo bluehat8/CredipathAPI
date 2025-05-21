@@ -21,9 +21,9 @@ namespace CredipathAPI.Services
             _configuration = configuration;
         }
 
-        public async Task<User?> GetUserByUsernameAsync(string username)
+        public async Task<User?> GetUserByUsernameAsync(string usernameOrEmail)
         {
-            return await _context.Users.FirstOrDefaultAsync(x => x.username == username);
+            return await _context.Users.FirstOrDefaultAsync(x => x.username == usernameOrEmail || x.email == usernameOrEmail);
         }
 
         public bool VerifyPassword(User user, string password)

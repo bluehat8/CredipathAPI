@@ -53,7 +53,7 @@ namespace CredipathAPI.Controllers
         [Route("Login")]
         public async Task<IActionResult> Login([FromBody] LoginModel loginData)
         {
-            var userObj = await _userService.GetUserByUsernameAsync(loginData.username);
+            var userObj = await _userService.GetUserByUsernameAsync(loginData.usernameOrEmail);
 
             if (userObj == null || !_userService.VerifyPassword(userObj, loginData.password))
             {
@@ -70,7 +70,7 @@ namespace CredipathAPI.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Éxito",
+                message = "ï¿½xito",
                 tokenValue = token
             });
         }

@@ -19,6 +19,22 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnection"))
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
+// 🔥 Configurar CORS
+var corsPolicyName = "AllowFrontend";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicyName,
+        policy =>
+        {
+            var allowedOrigins = builder.Configuration.GetSection("MyHost:Issuers").Get<string[]>();
+            policy.WithOrigins(allowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+        });
+});
+
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(
@@ -102,6 +118,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// 🔥 Habilitar CORS antes de autenticación y autorización
+app.UseCors(corsPolicyName);
 
 app.UseAuthentication();
 app.UseAuthorization();
