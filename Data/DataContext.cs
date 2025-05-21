@@ -26,6 +26,8 @@ namespace CredipathAPI.Data
         public DbSet<ExcludedDays> excludedDays { get; set; }
         public DbSet<LoanAmortization> LoanAmortization { get; set; }
         public DbSet<ViewExpectedvsReality> viewExpectedvsRealities { get; set; }
+        public DbSet<Bank> Banks { get; set; }
+
 
 
 
