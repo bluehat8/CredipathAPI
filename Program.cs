@@ -88,6 +88,7 @@ builder.Services.AddScoped<ExcludedDaysService>();
 builder.Services.AddScoped<ViewExpectedvsRealityService>();
 builder.Services.AddScoped<LoanAmortizationService>();
 builder.Services.AddScoped<UserRouteService>();
+builder.Services.AddScoped< BankService> ();
 
 
 

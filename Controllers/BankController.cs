@@ -9,6 +9,7 @@ using CredipathAPI.Data;
 using CredipathAPI.Model;
 using CredipathAPI.Services;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CredipathAPI.Controllers
 {
@@ -25,6 +26,8 @@ namespace CredipathAPI.Controllers
 
         // GET: api/Client
         [HttpGet]
+        [Authorize(Policy = "AdminOnly")]
+
         public async Task<ActionResult<IEnumerable<Bank>>> GetBank()
         {
             var banks = await _bankService.GetAllBankAsync();
@@ -33,6 +36,8 @@ namespace CredipathAPI.Controllers
 
         // GET: api/Client/5
         [HttpGet("{id}")]
+        [Authorize(Policy = "AdminOnly")]
+
         public async Task<ActionResult<Bank>> GetBank(int id)
         {
             var bank = await _bankService.GetBankIdAsync(id);
@@ -47,6 +52,8 @@ namespace CredipathAPI.Controllers
 
         // POST: api/Client
         [HttpPost]
+        [Authorize(Policy = "AdminOnly")]
+
         public async Task<ActionResult<Bank>> PostBank(Bank bank)
         {
             await _bankService.CreateBankAsync(bank);
@@ -55,6 +62,8 @@ namespace CredipathAPI.Controllers
 
         // PUT: api/Client/5
         [HttpPut("{id}")]
+        [Authorize(Policy = "AdminOnly")]
+
         public async Task<IActionResult> PutBank(int id, Bank bank)
         {
 
@@ -79,6 +88,8 @@ namespace CredipathAPI.Controllers
 
         // DELETE: api/Client/5 (Eliminación suave)
         [HttpDelete("{id}")]
+        [Authorize(Policy = "AdminOnly")]
+
         public async Task<IActionResult> DeleteBank(int id)
         {
             var deleted = await _bankService.DeleteBankAsync(id);
