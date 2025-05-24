@@ -1,4 +1,5 @@
 using CredipathAPI.Base;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CredipathAPI.Model
@@ -19,32 +20,27 @@ namespace CredipathAPI.Model
         [ForeignKey("CreatedById")]
         public User CreatedBy { get; set; }
         
-        // Permisos específicos del colaborador
-        public LoanPermissions Loan { get; set; }
-        public PaymentPermissions Payment { get; set; }
-        public ModulePermissions Modules { get; set; }
+        // Los permisos se manejan a través de UserPermission en la entidad User
     }
-
-    public class LoanPermissions
+    
+    // Clase para configurar las relaciones y evitar ciclos de eliminación en cascada
+    public static class CollaboratorModelConfiguration
     {
-        public bool Add { get; set; }
-        public bool Edit { get; set; }
-        public bool Delete { get; set; }
-    }
-
-    public class PaymentPermissions
-    {
-        public bool Add { get; set; }
-        public bool Edit { get; set; }
-        public bool Delete { get; set; }
-    }
-
-    public class ModulePermissions
-    {
-        public bool Collaborators { get; set; }
-        public bool OverduePayments { get; set; }
-        public bool UpcomingPayments { get; set; }
-        public bool LoanPayment { get; set; }
-        public bool Report { get; set; }
+        public static void Configure(ModelBuilder modelBuilder)
+        {
+            // Configurar la relación principal UserId sin eliminación en cascada
+            modelBuilder.Entity<Collaborator>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict); // Usar Restrict en lugar de Cascade
+                
+            // Configurar la relación de CreatedBy sin eliminación en cascada
+            modelBuilder.Entity<Collaborator>()
+                .HasOne(c => c.CreatedBy)
+                .WithMany()
+                .HasForeignKey(c => c.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict); // Usar Restrict en lugar de Cascade
+        }
     }
 }

@@ -27,8 +27,14 @@ namespace CredipathAPI.Services
                     .Include(c => c.User)
                     .Include(c => c.CreatedBy)
                     .ToListAsync();
-                    
-                return collaborators.Select(c => MapToResponseDTO(c));
+                
+                var result = new List<CollaboratorResponseDTO>();
+                foreach (var collaborator in collaborators)
+                {
+                    result.Add(await GetMappedCollaboratorResponseAsync(collaborator));
+                }
+                
+                return result;
             }
             catch (Exception ex)
             {
@@ -53,7 +59,7 @@ namespace CredipathAPI.Services
                     throw new KeyNotFoundException($"No se encontró colaborador con ID: {id}");
                 }
                 
-                return MapToResponseDTO(collaborator);
+                return await GetMappedCollaboratorResponseAsync(collaborator);
             }
             catch (Exception ex) when (!(ex is KeyNotFoundException))
             {
@@ -91,6 +97,18 @@ namespace CredipathAPI.Services
                     _logger.LogWarning($"Intento de crear colaborador con identificador duplicado: {dto.Identifier}");
                     throw new InvalidOperationException($"Ya existe un colaborador con el identificador: {dto.Identifier}");
                 }
+                
+                // Convertir la estructura anidada de permisos a IDs de permisos
+                if (dto.Permissions != null)
+                {
+                    var permissionIds = await GetPermissionIdsFromNestedStructureAsync(dto.Permissions);
+                    if (permissionIds.Any())
+                    {
+                        dto.PermissionIds.AddRange(permissionIds);
+                        // Eliminar duplicados si los hay
+                        dto.PermissionIds = dto.PermissionIds.Distinct().ToList();
+                    }
+                }
 
                 // 1. Crear el usuario
                 var passwordHasher = new PasswordHasher<User>();
@@ -109,21 +127,39 @@ namespace CredipathAPI.Services
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync(); // Guardar para obtener el ID
 
-                // 2. Crear el colaborador asociado con los permisos del DTO
+                // 2. Crear el colaborador asociado
                 var collaborator = new Collaborator
                 {
                     Identifier = dto.Identifier,
                     Phone = dto.Phone,
                     Mobile = dto.Mobile,
                     UserId = user.Id,
-                    CreatedById = creatorUserId,
-                    Loan = dto.Permissions?.Loan ?? new LoanPermissions(),
-                    Payment = dto.Permissions?.Payment ?? new PaymentPermissions(),
-                    Modules = dto.Permissions?.Modules ?? new ModulePermissions()
+                    CreatedById = creatorUserId
                 };
 
                 _context.Collaborators.Add(collaborator);
                 await _context.SaveChangesAsync();
+                
+                // 3. Asignar permisos al usuario creado
+                if (dto.PermissionIds != null && dto.PermissionIds.Any())
+                {
+                    // Verificar que los permisos existan
+                    var existingPermissions = await _context.Permissions
+                        .Where(p => dto.PermissionIds.Contains(p.Id))
+                        .ToListAsync();
+                        
+                    foreach (var permissionId in existingPermissions.Select(p => p.Id))
+                    {
+                        var userPermission = new UserPermission
+                        {
+                            UserId = user.Id,
+                            PermissionId = permissionId
+                        };
+                        _context.UserPermissions.Add(userPermission);
+                    }
+                    
+                    await _context.SaveChangesAsync();
+                }
                 
                 // Confirmar la transacción
                 await transaction.CommitAsync();
@@ -133,7 +169,7 @@ namespace CredipathAPI.Services
                 await _context.Entry(collaborator).Reference(c => c.CreatedBy).LoadAsync();
 
                 _logger.LogInformation($"Colaborador creado con ID: {collaborator.Id}, asociado al usuario ID: {user.Id}");
-                return MapToResponseDTO(collaborator);
+                return await GetMappedCollaboratorResponseAsync(collaborator);
             }
             catch (Exception ex)
             {
@@ -185,26 +221,49 @@ namespace CredipathAPI.Services
                 if (!string.IsNullOrEmpty(dto.Mobile))
                     collaborator.Mobile = dto.Mobile;
                 
-                // Actualizar permisos
-                if (dto.Loan != null)
-                    collaborator.Loan = dto.Loan;
+                // Actualizar permisos si se proporcionaron
+                if (dto.PermissionIds != null)
+                {
+                    // Eliminar permisos existentes
+                    var existingPermissions = await _context.UserPermissions
+                        .Where(up => up.UserId == collaborator.UserId)
+                        .ToListAsync();
+                        
+                    foreach (var perm in existingPermissions)
+                    {
+                        _context.UserPermissions.Remove(perm);
+                    }
                     
-                if (dto.Payment != null)
-                    collaborator.Payment = dto.Payment;
-                    
-                if (dto.Modules != null)
-                    collaborator.Modules = dto.Modules;
-                    
+                    // Agregar nuevos permisos
+                    foreach (var permissionId in dto.PermissionIds)
+                    {
+                        // Verificar que el permiso exista
+                        if (await _context.Permissions.AnyAsync(p => p.Id == permissionId))
+                        {
+                            var userPermission = new UserPermission
+                            {
+                                UserId = collaborator.UserId,
+                                PermissionId = permissionId
+                            };
+                            _context.UserPermissions.Add(userPermission);
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Permiso con ID {permissionId} no encontrado al actualizar colaborador {id}");
+                        }
+                    }
+                }
+                
                 collaborator.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 
-                // Cargar el usuario que creó el colaborador para el mapeo
+                // Cargar los datos relacionados para el mapeo
                 await _context.Entry(collaborator).Reference(c => c.CreatedBy).LoadAsync();
                 
                 _logger.LogInformation($"Colaborador actualizado con ID: {id}");
-                return MapToResponseDTO(collaborator);
+                return await GetMappedCollaboratorResponseAsync(collaborator);
             }
             catch (Exception ex)
             {
@@ -251,11 +310,164 @@ namespace CredipathAPI.Services
             }
         }
 
-        // Método para mapear de Collaborator a CollaboratorResponseDTO
-        public CollaboratorResponseDTO MapToResponseDTO(Collaborator collaborator)
+        // Método para convertir la estructura anidada de permisos a IDs de permisos en el sistema
+        private async Task<List<int>> GetPermissionIdsFromNestedStructureAsync(NestedPermissionsDTO permissions)
+        {
+            var result = new List<int>();
+            
+            if (permissions == null)
+                return result;
+                
+            try
+            {
+                // 1. Permisos de préstamos (Loan)
+                if (permissions.Loan != null)
+                {
+                    // Buscar el ID del permiso para "Loan Add"
+                    if (permissions.Loan.Add)
+                    {
+                        var loanAddPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Prestamos" && p.Action == "Agregar");
+                            
+                        if (loanAddPermission != null)
+                            result.Add(loanAddPermission.Id);
+                    }
+                    
+                    // Buscar el ID del permiso para "Loan Edit"
+                    if (permissions.Loan.Edit)
+                    {
+                        var loanEditPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Prestamos" && p.Action == "Editar");
+                            
+                        if (loanEditPermission != null)
+                            result.Add(loanEditPermission.Id);
+                    }
+                    
+                    // Buscar el ID del permiso para "Loan Delete"
+                    if (permissions.Loan.Delete)
+                    {
+                        var loanDeletePermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Prestamos" && p.Action == "Eliminar");
+                            
+                        if (loanDeletePermission != null)
+                            result.Add(loanDeletePermission.Id);
+                    }
+                }
+                
+                // 2. Permisos de pagos (Payment)
+                if (permissions.Payment != null)
+                {
+                    // Buscar el ID del permiso para "Payment Add"
+                    if (permissions.Payment.Add)
+                    {
+                        var paymentAddPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Pagos" && p.Action == "Agregar");
+                            
+                        if (paymentAddPermission != null)
+                            result.Add(paymentAddPermission.Id);
+                    }
+                    
+                    // Buscar el ID del permiso para "Payment Edit"
+                    if (permissions.Payment.Edit)
+                    {
+                        var paymentEditPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Pagos" && p.Action == "Editar");
+                            
+                        if (paymentEditPermission != null)
+                            result.Add(paymentEditPermission.Id);
+                    }
+                    
+                    // Buscar el ID del permiso para "Payment Delete"
+                    if (permissions.Payment.Delete)
+                    {
+                        var paymentDeletePermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Pagos" && p.Action == "Eliminar");
+                            
+                        if (paymentDeletePermission != null)
+                            result.Add(paymentDeletePermission.Id);
+                    }
+                }
+                
+                // 3. Permisos de módulos (Modules)
+                if (permissions.Modules != null)
+                {
+                    // Módulo de Colaboradores
+                    if (permissions.Modules.Collaborators)
+                    {
+                        var collaboratorsPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Colaboradores" && p.Action == "Ver");
+                            
+                        if (collaboratorsPermission != null)
+                            result.Add(collaboratorsPermission.Id);
+                    }
+                    
+                    // Módulo de Pagos vencidos
+                    if (permissions.Modules.OverduePayments)
+                    {
+                        var overduePaymentsPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "PagosVencidos" && p.Action == "Ver");
+                            
+                        if (overduePaymentsPermission != null)
+                            result.Add(overduePaymentsPermission.Id);
+                    }
+                    
+                    // Módulo de Pagos próximos
+                    if (permissions.Modules.UpcomingPayments)
+                    {
+                        var upcomingPaymentsPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "PagosProximos" && p.Action == "Ver");
+                            
+                        if (upcomingPaymentsPermission != null)
+                            result.Add(upcomingPaymentsPermission.Id);
+                    }
+                    
+                    // Módulo de Pago de préstamos
+                    if (permissions.Modules.LoanPayment)
+                    {
+                        var loanPaymentPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "PagoPrestamos" && p.Action == "Ver");
+                            
+                        if (loanPaymentPermission != null)
+                            result.Add(loanPaymentPermission.Id);
+                    }
+                    
+                    // Módulo de Reportes
+                    if (permissions.Modules.Report)
+                    {
+                        var reportPermission = await _context.Permissions
+                            .FirstOrDefaultAsync(p => p.Module == "Reportes" && p.Action == "Ver");
+                            
+                        if (reportPermission != null)
+                            result.Add(reportPermission.Id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al convertir estructura anidada de permisos a IDs");
+            }
+            
+            return result;
+        }
+        
+        // Método para mapear de Collaborator a CollaboratorResponseDTO incluyendo permisos
+        public async Task<CollaboratorResponseDTO> GetMappedCollaboratorResponseAsync(Collaborator collaborator)
         {
             if (collaborator == null)
                 return null;
+            
+            // Obtener los permisos del usuario
+            var userPermissions = await _context.UserPermissions
+                .Include(up => up.Permission)
+                .Where(up => up.UserId == collaborator.UserId)
+                .ToListAsync();
+                
+            var permissionDtos = userPermissions
+                .Select(up => new PermissionDTO {
+                    Id = up.Permission.Id,
+                    Module = up.Permission.Module,
+                    Action = up.Permission.Action
+                }).ToList();
                 
             return new CollaboratorResponseDTO
             {
@@ -277,9 +489,7 @@ namespace CredipathAPI.Services
                 CreatedAt = collaborator.CreatedAt,
                 
                 // Permisos
-                Loan = collaborator.Loan,
-                Payment = collaborator.Payment,
-                Modules = collaborator.Modules
+                Permissions = permissionDtos
             };
         }
     }

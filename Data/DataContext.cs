@@ -52,15 +52,13 @@ namespace CredipathAPI.Data
                 .HasIndex(u => u.email)
                 .IsUnique();
                 
-            // Configurar el email como único para colaboradores
-            modelBuilder.Entity<Collaborator>()
-                .HasIndex(c => c.Email)
-                .IsUnique();
-                
             // Configurar el identificador como único para colaboradores
             modelBuilder.Entity<Collaborator>()
                 .HasIndex(c => c.Identifier)
                 .IsUnique();
+                
+            // Aplicar la configuración para evitar ciclos de relaciones en Collaborator
+            CollaboratorModelConfiguration.Configure(modelBuilder);
         }
     }
 }

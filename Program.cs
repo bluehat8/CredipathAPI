@@ -81,7 +81,19 @@ builder.Services.AddSwaggerGen(c =>
             new string[] {}
         }
     });
+    
+    // Configuraciones adicionales para evitar problemas con referencias circulares
+    c.CustomSchemaIds(type => type.FullName);
+    c.DocInclusionPredicate((_, api) => !string.IsNullOrWhiteSpace(api.RelativePath));
 });
+
+// Configurar JSON para evitar referencias circulares
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
 //Policies
 builder.Services.AddAuthorization(options =>
@@ -127,5 +139,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Inicializar permisos para la funcionalidad de colaboradores (dentro de un try-catch para evitar errores de arranque)
+try
+{
+    await PermissionsInitializer.InitializePermissionsAsync(app.Services);
+}
+catch (Exception ex)
+{
+    // Loguear pero permitir que la aplicación continúe
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Error al inicializar permisos, pero la aplicación continuará.");
+}
 
 app.Run();

@@ -10,6 +10,7 @@ namespace CredipathAPI.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = "AdminOnly")]
+    [Produces("application/json")]
     public class CollaboratorController : ControllerBase
     {
         private readonly CollaboratorService _collaboratorService;
