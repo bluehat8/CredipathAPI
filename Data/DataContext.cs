@@ -1,4 +1,4 @@
-﻿using CredipathAPI.Model;
+using CredipathAPI.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 
@@ -26,6 +26,7 @@ namespace CredipathAPI.Data
         public DbSet<ExcludedDays> excludedDays { get; set; }
         public DbSet<LoanAmortization> LoanAmortization { get; set; }
         public DbSet<ViewExpectedvsReality> viewExpectedvsRealities { get; set; }
+        public DbSet<Collaborator> Collaborators { get; set; }
 
 
 
@@ -46,9 +47,19 @@ namespace CredipathAPI.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configurar el email como único
+            // Configurar el email como único para usuarios
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.email)
+                .IsUnique();
+                
+            // Configurar el email como único para colaboradores
+            modelBuilder.Entity<Collaborator>()
+                .HasIndex(c => c.Email)
+                .IsUnique();
+                
+            // Configurar el identificador como único para colaboradores
+            modelBuilder.Entity<Collaborator>()
+                .HasIndex(c => c.Identifier)
                 .IsUnique();
         }
     }
