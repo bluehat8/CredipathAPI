@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CredipathAPI.DTOs
 {
-    // DTO para creación de colaborador (crea también el usuario asociado)
     public class CollaboratorCreateDTO
     {
         // Datos del colaborador
@@ -26,16 +25,13 @@ namespace CredipathAPI.DTOs
         [Required(ErrorMessage = "La contraseña es obligatoria")]
         public string Password { get; set; }
         
-        // No usamos esto pero lo dejamos por compatibilidad con clientes existentes
+        // La verdad esto no lo vamos a eliminar luego
         public string ConfirmPassword { get; set; }
         
-        // El rol siempre será "collaborator"
         public string Role { get; set; } = "collaborator";
         
-        // IDs de permisos a asignar (usado internamente)
         public List<int> PermissionIds { get; set; } = new List<int>();
         
-        // Estructura anidada de permisos que viene del cliente
         public NestedPermissionsDTO Permissions { get; set; }
     }
     
@@ -81,7 +77,6 @@ namespace CredipathAPI.DTOs
         public List<int> PermissionIds { get; set; }
     }
 
-    // Para respuesta
     public class CollaboratorResponseDTO
     {
         public int Id { get; set; }
@@ -105,7 +100,6 @@ namespace CredipathAPI.DTOs
         public List<PermissionDTO> Permissions { get; set; } = new List<PermissionDTO>();
     }
 
-    // DTO para mostrar información de permisos en respuestas
     public class PermissionDTO
     {
         public int Id { get; set; }
@@ -113,7 +107,6 @@ namespace CredipathAPI.DTOs
         public string Action { get; set; }
     }
 
-    // Clase para respuestas estándar de la API
     public class ApiResponse<T>
     {
         public bool Success { get; set; }

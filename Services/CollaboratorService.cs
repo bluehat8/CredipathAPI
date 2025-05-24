@@ -116,7 +116,7 @@ namespace CredipathAPI.Services
                 var user = new User
                 {
                     name = dto.Name,
-                    username = dto.Email, // Usar email como username
+                    username = dto.Email,
                     email = dto.Email,
                     address = dto.Address,
                     UserType = UserType.collaborator
@@ -125,7 +125,7 @@ namespace CredipathAPI.Services
                 user.password = passwordHasher.HashPassword(user, dto.Password);
                 
                 _context.Users.Add(user);
-                await _context.SaveChangesAsync(); // Guardar para obtener el ID
+                await _context.SaveChangesAsync(); 
 
                 // 2. Crear el colaborador asociado
                 var collaborator = new Collaborator
@@ -161,7 +161,6 @@ namespace CredipathAPI.Services
                     await _context.SaveChangesAsync();
                 }
                 
-                // Confirmar la transacción
                 await transaction.CommitAsync();
 
                 // Cargar los datos relacionados para el mapeo
@@ -192,7 +191,6 @@ namespace CredipathAPI.Services
             
             try
             {
-                // Obtener el colaborador con sus relaciones
                 var collaborator = await _context.Collaborators
                     .Include(c => c.User)
                     .FirstOrDefaultAsync(c => c.Id == id);
@@ -203,7 +201,6 @@ namespace CredipathAPI.Services
                     throw new KeyNotFoundException($"No se encontró colaborador con ID: {id}");
                 }
 
-                // Verificar si el identificador ya está en uso por otro colaborador
                 if (!string.IsNullOrEmpty(dto.Identifier) && 
                     await _context.Collaborators.AnyAsync(c => c.Identifier == dto.Identifier && c.Id != id))
                 {
@@ -211,7 +208,6 @@ namespace CredipathAPI.Services
                     throw new InvalidOperationException($"Ya existe otro colaborador con el identificador: {dto.Identifier}");
                 }
 
-                // Actualizar propiedades del colaborador
                 if (!string.IsNullOrEmpty(dto.Identifier))
                     collaborator.Identifier = dto.Identifier;
                     
@@ -221,7 +217,6 @@ namespace CredipathAPI.Services
                 if (!string.IsNullOrEmpty(dto.Mobile))
                     collaborator.Mobile = dto.Mobile;
                 
-                // Actualizar permisos si se proporcionaron
                 if (dto.PermissionIds != null)
                 {
                     // Eliminar permisos existentes
@@ -237,7 +232,6 @@ namespace CredipathAPI.Services
                     // Agregar nuevos permisos
                     foreach (var permissionId in dto.PermissionIds)
                     {
-                        // Verificar que el permiso exista
                         if (await _context.Permissions.AnyAsync(p => p.Id == permissionId))
                         {
                             var userPermission = new UserPermission
@@ -259,7 +253,6 @@ namespace CredipathAPI.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 
-                // Cargar los datos relacionados para el mapeo
                 await _context.Entry(collaborator).Reference(c => c.CreatedBy).LoadAsync();
                 
                 _logger.LogInformation($"Colaborador actualizado con ID: {id}");
@@ -310,7 +303,7 @@ namespace CredipathAPI.Services
             }
         }
 
-        // Método para convertir la estructura anidada de permisos a IDs de permisos en el sistema
+        // Función para convertir la estructura anidada de permisos a IDs de permisos en el sistema
         private async Task<List<int>> GetPermissionIdsFromNestedStructureAsync(NestedPermissionsDTO permissions)
         {
             var result = new List<int>();

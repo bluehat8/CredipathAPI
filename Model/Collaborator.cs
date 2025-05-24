@@ -20,27 +20,24 @@ namespace CredipathAPI.Model
         [ForeignKey("CreatedById")]
         public User CreatedBy { get; set; }
         
-        // Los permisos se manejan a través de UserPermission en la entidad User
     }
     
-    // Clase para configurar las relaciones y evitar ciclos de eliminación en cascada
+    // Esta clase se usa configurar las relaciones y evitar ciclos de eliminación en cascada
     public static class CollaboratorModelConfiguration
     {
         public static void Configure(ModelBuilder modelBuilder)
         {
-            // Configurar la relación principal UserId sin eliminación en cascada
             modelBuilder.Entity<Collaborator>()
                 .HasOne(c => c.User)
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.Restrict); // Usar Restrict en lugar de Cascade
+                .OnDelete(DeleteBehavior.Restrict);
                 
-            // Configurar la relación de CreatedBy sin eliminación en cascada
             modelBuilder.Entity<Collaborator>()
                 .HasOne(c => c.CreatedBy)
                 .WithMany()
                 .HasForeignKey(c => c.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict); // Usar Restrict en lugar de Cascade
+                .OnDelete(DeleteBehavior.Restrict); 
         }
     }
 }
