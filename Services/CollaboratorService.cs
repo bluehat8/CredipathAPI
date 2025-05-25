@@ -243,31 +243,29 @@ namespace CredipathAPI.Services
 
                 if (dto.Permissions != null)
                 {
-                    // Eliminar permisos existentes
-                    var existingPermissions = await _context.UserPermissions
+                    await _context.UserPermissions
                         .Where(up => up.UserId == collaborator.UserId)
-                        .ToListAsync();
-                    _context.UserPermissions.RemoveRange(existingPermissions);
+                        .ExecuteDeleteAsync();
 
-                    // Agregar nuevos permisos
-                    foreach (var permissionId in dto.Permissions)
+                    var validPermissions = await _context.Permissions
+                        .Where(p => dto.Permissions.Contains(p.Id))
+                        .Select(p => p.Id)
+                        .ToListAsync();
+
+                    _context.UserPermissions.AddRange(
+                        validPermissions.Select(permissionId => new UserPermission
+                        {
+                            UserId = collaborator.UserId,
+                            PermissionId = permissionId
+                        }));
+
+                    var invalidPermissions = dto.Permissions.Except(validPermissions);
+                    foreach (var invalidId in invalidPermissions)
                     {
-                        if (await _context.Permissions.AnyAsync(p => p.Id == permissionId))
-                        {
-                            var userPermission = new UserPermission
-                            {
-                                UserId = collaborator.UserId,
-                                PermissionId = permissionId
-                            };
-                            _context.UserPermissions.Add(userPermission);
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"Permiso con ID {permissionId} no encontrado al actualizar colaborador {id}");
-                        }
+                        _logger.LogWarning($"Permiso con ID {invalidId} no encontrado al actualizar colaborador {id}");
                     }
                 }
-                
+
                 collaborator.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
