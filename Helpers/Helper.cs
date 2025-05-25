@@ -16,6 +16,14 @@ namespace CredipathAPI.Helpers
             };
         }
 
+        public static void UpdateIfNotEmpty(string value, Action<string> updateAction)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                updateAction(value);
+            }
+        }
+
         public static DateTime CalculateNextPaymentDate(DateTime startDate, int paymentNumber, string frequencyName, int customInterval = 0)
         {
             return frequencyName.ToLower() switch

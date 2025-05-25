@@ -1,5 +1,6 @@
 using CredipathAPI.Data;
 using CredipathAPI.DTOs;
+using CredipathAPI.Helpers;
 using CredipathAPI.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -227,29 +228,18 @@ namespace CredipathAPI.Services
                     throw new InvalidOperationException($"Ya existe otro colaborador con el identificador: {dto.Identifier}");
                 }
 
-                if (!string.IsNullOrEmpty(dto.Identifier))
-                    collaborator.Identifier = dto.Identifier;
-                    
-                if (!string.IsNullOrEmpty(dto.Phone))
-                    collaborator.Phone = dto.Phone;
-                    
-                if (!string.IsNullOrEmpty(dto.Mobile))
-                    collaborator.Mobile = dto.Mobile;
+                Helper.UpdateIfNotEmpty(dto.Phone, value => collaborator.Phone = value);
+                Helper.UpdateIfNotEmpty(dto.Mobile, value => collaborator.Mobile = value);
+                Helper.UpdateIfNotEmpty(dto.Identifier, value => collaborator.Identifier = value);
+
 
                 if (collaborator.User != null)
                 {
-                    if (!string.IsNullOrEmpty(dto.Name))
-                        collaborator.User.name = dto.Name;
-                    if (!string.IsNullOrEmpty(dto.Email))
-                        collaborator.User.email = dto.Email;
-                    if (!string.IsNullOrEmpty(dto.Address))
-                        collaborator.User.address = dto.Address;
-                    if (!string.IsNullOrEmpty(dto.Password))
-                        collaborator.User.password = passwordHasher.HashPassword(collaborator.User, dto.Password);
-
+                    Helper.UpdateIfNotEmpty(dto.Name, value => collaborator.User.name = value);
+                    Helper.UpdateIfNotEmpty(dto.Email, value => collaborator.User.email = value);
+                    Helper.UpdateIfNotEmpty(dto.Address, value => collaborator.User.address = value);
+                    Helper.UpdateIfNotEmpty(dto.Password, value => collaborator.User.password = passwordHasher.HashPassword(collaborator.User, value));
                 }
-
-
 
                 if (dto.Permissions != null)
                 {
@@ -486,7 +476,7 @@ namespace CredipathAPI.Services
                 .ToListAsync();
                 
             var permissionDtos = userPermissions
-                .Select(up => new PermissionDTO {
+                .Select(up => new DTOs.PermissionDTO {
                     Id = up.Permission.Id,
                     Module = up.Permission.Module,
                     Action = up.Permission.Action
