@@ -4,6 +4,7 @@ using CredipathAPI.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.CodeDom;
 using System.Security.Claims;
 using static CredipathAPI.Constants;
 
@@ -210,7 +211,9 @@ namespace CredipathAPI.Services
                 var collaborator = await _context.Collaborators
                     .Include(c => c.User)
                     .FirstOrDefaultAsync(c => c.Id == id);
-                    
+
+                var passwordHasher = new PasswordHasher<User>();
+
                 if (collaborator == null)
                 {
                     _logger.LogWarning($"Intento de actualizar colaborador inexistente con ID: {id}");
@@ -232,6 +235,19 @@ namespace CredipathAPI.Services
                     
                 if (!string.IsNullOrEmpty(dto.Mobile))
                     collaborator.Mobile = dto.Mobile;
+
+                if (collaborator.User != null)
+                {
+                    if (!string.IsNullOrEmpty(dto.Name))
+                        collaborator.User.name = dto.Name;
+                    if (!string.IsNullOrEmpty(dto.Email))
+                        collaborator.User.email = dto.Email;
+                    if (!string.IsNullOrEmpty(dto.Address))
+                        collaborator.User.address = dto.Address;
+                    if (!string.IsNullOrEmpty(dto.Password))
+                        collaborator.User.password = passwordHasher.HashPassword(collaborator.User, dto.Password);
+
+                }
 
 
 
