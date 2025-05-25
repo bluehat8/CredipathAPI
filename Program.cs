@@ -87,6 +87,9 @@ builder.Services.AddSwaggerGen(c =>
     c.DocInclusionPredicate((_, api) => !string.IsNullOrWhiteSpace(api.RelativePath));
 });
 
+builder.Services.AddHttpContextAccessor();
+
+
 // Configurar JSON para evitar referencias circulares
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

@@ -1,9 +1,12 @@
 using CredipathAPI.Data;
 using CredipathAPI.DTOs;
 using CredipathAPI.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using static CredipathAPI.Constants;
+
 
 namespace CredipathAPI.Services
 {
@@ -11,19 +14,31 @@ namespace CredipathAPI.Services
     {
         private readonly DataContext _context;
         private readonly ILogger<CollaboratorService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CollaboratorService(DataContext context, ILogger<CollaboratorService> logger)
+        public CollaboratorService(DataContext context, ILogger<CollaboratorService> logger, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
+        [Authorize]
         public async Task<IEnumerable<CollaboratorResponseDTO>> GetAllCollaboratorsAsync()
         {
             try
             {
-                _logger.LogInformation("Obteniendo todos los colaboradores");
+                var userIdClaim = _httpContextAccessor.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == "id");
+
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int currentUserId))
+                {
+                    _logger.LogWarning("No se pudo obtener el ID del usuario autenticado");
+                    throw new UnauthorizedAccessException("Usuario no autenticado");
+                }
+
+                _logger.LogInformation($"Obteniendo colaboradores para el usuario con ID: {currentUserId}");
                 var collaborators = await _context.Collaborators
+                    .Where(c => c.CreatedById == currentUserId)
                     .Include(c => c.User)
                     .Include(c => c.CreatedBy)
                     .ToListAsync();
@@ -38,7 +53,7 @@ namespace CredipathAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener todos los colaboradores");
+                _logger.LogError(ex, "Error al obtener los colaboradores");
                 throw;
             }
         }
