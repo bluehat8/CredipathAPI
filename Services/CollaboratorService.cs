@@ -141,23 +141,24 @@ namespace CredipathAPI.Services
                 await _context.SaveChangesAsync();
                 
                 // 3. Asignar permisos al usuario creado
-                if (dto.PermissionIds != null && dto.PermissionIds.Any())
+                if ((dto.PermissionIds == null || dto.PermissionIds.Count == 0) && dto.Permissions != null)
                 {
-                    // Verificar que los permisos existan
-                    var existingPermissions = await _context.Permissions
-                        .Where(p => dto.PermissionIds.Contains(p.Id))
-                        .ToListAsync();
-                        
-                    foreach (var permissionId in existingPermissions.Select(p => p.Id))
+                    dto.PermissionIds = await GetPermissionIdsFromNestedStructureAsync(dto.Permissions);
+                }
+                if (dto.PermissionIds != null && dto.PermissionIds.Count > 0)
+                {
+                    foreach (var permissionId in dto.PermissionIds)
                     {
-                        var userPermission = new UserPermission
+                        if (await _context.Permissions.AnyAsync(p => p.Id == permissionId))
                         {
-                            UserId = user.Id,
-                            PermissionId = permissionId
-                        };
-                        _context.UserPermissions.Add(userPermission);
+                            var userPermission = new UserPermission
+                            {
+                                UserId = user.Id,
+                                PermissionId = permissionId
+                            };
+                            _context.UserPermissions.Add(userPermission);
+                        }
                     }
-                    
                     await _context.SaveChangesAsync();
                 }
                 
@@ -217,18 +218,19 @@ namespace CredipathAPI.Services
                 if (!string.IsNullOrEmpty(dto.Mobile))
                     collaborator.Mobile = dto.Mobile;
                 
+                // Si PermissionIds viene vacío pero Permissions viene con datos, convertimos antes de guardar
+                if ((dto.PermissionIds == null || dto.PermissionIds.Count == 0) && dto.Permissions != null)
+                {
+                    dto.PermissionIds = await GetPermissionIdsFromNestedStructureAsync(dto.Permissions);
+                }
                 if (dto.PermissionIds != null)
                 {
                     // Eliminar permisos existentes
                     var existingPermissions = await _context.UserPermissions
                         .Where(up => up.UserId == collaborator.UserId)
                         .ToListAsync();
-                        
-                    foreach (var perm in existingPermissions)
-                    {
-                        _context.UserPermissions.Remove(perm);
-                    }
-                    
+                    _context.UserPermissions.RemoveRange(existingPermissions);
+
                     // Agregar nuevos permisos
                     foreach (var permissionId in dto.PermissionIds)
                     {

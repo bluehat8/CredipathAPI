@@ -30,7 +30,8 @@ namespace CredipathAPI.DTOs
         
         public string Role { get; set; } = "collaborator";
         
-        public List<int> PermissionIds { get; set; } = new List<int>();
+        // Ahora opcional para permitir solo 'permissions' desde el cliente
+        public List<int>? PermissionIds { get; set; }
         
         public NestedPermissionsDTO Permissions { get; set; }
     }
@@ -74,7 +75,8 @@ namespace CredipathAPI.DTOs
         public string Mobile { get; set; }
         
         // IDs de permisos a asignar (reemplazarán los permisos existentes)
-        public List<int> PermissionIds { get; set; }
+        public List<int>? PermissionIds { get; set; }
+        public NestedPermissionsDTO Permissions { get; set; }
     }
 
     public class CollaboratorResponseDTO
