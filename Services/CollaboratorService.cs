@@ -217,13 +217,10 @@ namespace CredipathAPI.Services
                     
                 if (!string.IsNullOrEmpty(dto.Mobile))
                     collaborator.Mobile = dto.Mobile;
-                
-                // Si PermissionIds viene vacío pero Permissions viene con datos, convertimos antes de guardar
-                if ((dto.PermissionIds == null || dto.PermissionIds.Count == 0) && dto.Permissions != null)
-                {
-                    dto.PermissionIds = await GetPermissionIdsFromNestedStructureAsync(dto.Permissions);
-                }
-                if (dto.PermissionIds != null)
+
+
+
+                if (dto.Permissions != null)
                 {
                     // Eliminar permisos existentes
                     var existingPermissions = await _context.UserPermissions
@@ -232,7 +229,7 @@ namespace CredipathAPI.Services
                     _context.UserPermissions.RemoveRange(existingPermissions);
 
                     // Agregar nuevos permisos
-                    foreach (var permissionId in dto.PermissionIds)
+                    foreach (var permissionId in dto.Permissions)
                     {
                         if (await _context.Permissions.AnyAsync(p => p.Id == permissionId))
                         {

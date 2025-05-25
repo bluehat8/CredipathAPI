@@ -1,5 +1,6 @@
 using CredipathAPI.Model;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CredipathAPI.DTOs
 {
@@ -30,7 +31,8 @@ namespace CredipathAPI.DTOs
         
         public string Role { get; set; } = "collaborator";
         
-        // Ahora opcional para permitir solo 'permissions' desde el cliente
+        // Ahora se puede enviar como 'permissions' desde el cliente
+        [JsonPropertyName("permissions")]
         public List<int>? PermissionIds { get; set; }
         
         public NestedPermissionsDTO Permissions { get; set; }
@@ -75,8 +77,7 @@ namespace CredipathAPI.DTOs
         public string Mobile { get; set; }
         
         // IDs de permisos a asignar (reemplazarán los permisos existentes)
-        public List<int>? PermissionIds { get; set; }
-        public NestedPermissionsDTO Permissions { get; set; }
+        public List<int>? Permissions { get; set; }
     }
 
     public class CollaboratorResponseDTO
