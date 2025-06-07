@@ -8,16 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using CredipathAPI.Data;
 using CredipathAPI.Model;
 using CredipathAPI.Helpers;
-using Newtonsoft.Json;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Diagnostics.SymbolStore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authorization;
-using CredipathAPI.Services;
 using CredipathAPI.DTOs;
+using CredipathAPI.Services;
+using Microsoft.AspNetCore.Authorization;
+using System.Text.Json.Serialization;
 
 namespace CredipathAPI.Controllers
 {
@@ -32,11 +26,21 @@ namespace CredipathAPI.Controllers
         }
 
         // GET: api/Route
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Model.Route>>> GetRoutes()
+        [HttpGet("getRoutes")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> GetRoutes(
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 10)
         {
-            var routes = await _routeService.GetAllRoutesAsync();
-            return Ok(routes);
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+            var response = await _routeService.GetPaginatedRoutesAsync(page, pageSize);
+            return Ok(new 
+            { 
+                success = true,
+                data = response
+            });
         }
 
         // GET: api/Route/5

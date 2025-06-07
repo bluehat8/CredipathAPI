@@ -1,4 +1,5 @@
-﻿using CredipathAPI.Data;
+using CredipathAPI.Data;
+using CredipathAPI.DTOs;
 using CredipathAPI.Helpers;
 using CredipathAPI.Model;
 using Microsoft.AspNetCore.Identity;
@@ -22,6 +23,43 @@ namespace CredipathAPI.Services
         public async Task<List<Model.Route>> GetAllRoutesAsync()
         {
             return await _context.Routes.Where(s =>s.Active).ToListAsync();
+        }
+
+        public async Task<PagedResponse<RouteResponseDTO>> GetPaginatedRoutesAsync(int page = 1, int pageSize = 10)
+        {
+            var query = _context.Routes
+                .Where(r => r.Active)
+                .Select(r => new RouteResponseDTO
+                {
+                    Id = r.Id,
+                    Name = r.route_name,
+                    Description = r.description,
+                    Status = r.Active ? "active" : "inactive",
+                    District = r.District,
+                    Location = r.Location,
+                    ClientsCount = r.Clients != null ? r.Clients.Count(c => c.Active) : 0,
+                    CollaboratorsCount = r.UserRoutes != null ? r.UserRoutes.Count(ur => ur.User != null && ur.User.Active) : 0,
+                    CreatedAt = r.CreatedAt,
+                    UpdatedAt = r.UpdatedAt,
+                    LastVisit = r.UpdatedAt
+                });
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResponse<RouteResponseDTO>
+            {
+                Items = items,
+                Pagination = new PaginationMetadata
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    Total = totalItems
+                }
+            };
         }
 
         public async Task<Model.Route> GetRouteByIdAsync(int id)

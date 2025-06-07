@@ -70,7 +70,7 @@ namespace CredipathAPI.Controllers
             return Ok(new
             {
                 success = true,
-                message = "�xito",
+                message = "Éxito",
                 tokenValue = token
             });
         }

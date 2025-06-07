@@ -1,4 +1,4 @@
-﻿using CredipathAPI.Base;
+using CredipathAPI.Base;
 using static CredipathAPI.Constants;
 
 namespace CredipathAPI.Model
@@ -7,7 +7,9 @@ namespace CredipathAPI.Model
     {
         public string? route_name { get; set; } 
         public string? description { get; set; }
+        public string? District { get; set; }
+        public string? Location { get; set; }
         public required ICollection<Client> Clients { get; set; }
-        public ICollection<UserRoute> UserRoutes { get; set; }
+        public ICollection<UserRoute> UserRoutes { get; set; } = new List<UserRoute>();
     }
 }
