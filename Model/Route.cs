@@ -1,15 +1,28 @@
 using CredipathAPI.Base;
-using static CredipathAPI.Constants;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace CredipathAPI.Model
 {
     public class Route : BaseEntity
     {
-        public string? route_name { get; set; } 
+        [Required]
+        [MaxLength(100)]
+        public string route_name { get; set; } = string.Empty;
+        
+        [MaxLength(500)]
         public string? description { get; set; }
-        public string? District { get; set; }
-        public string? Location { get; set; }
-        public required ICollection<Client> Clients { get; set; }
-        public ICollection<UserRoute> UserRoutes { get; set; } = new List<UserRoute>();
+        
+        [Required]
+        [MaxLength(100)]
+        public string District { get; set; } = string.Empty;
+        
+        [Required]
+        [MaxLength(200)]
+        public string Location { get; set; } = string.Empty;
+        
+        // Propiedades de navegación (no se incluyen en el DTO)
+        public virtual ICollection<Client> Clients { get; set; } = new List<Client>();
+        public virtual ICollection<UserRoute> UserRoutes { get; set; } = new List<UserRoute>();
     }
 }

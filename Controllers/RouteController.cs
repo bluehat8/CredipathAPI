@@ -58,24 +58,6 @@ namespace CredipathAPI.Controllers
         }
 
 
-        // POST: Route/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-
-        [HttpPost]
-        [Authorize(Policy = "AdminOnly")]
-        public async Task<ActionResult<Model.Route>> PostRoute(RouteDTO routeDto)
-        {
-            Model.Route newRoute = new Model.Route
-            {
-                route_name = routeDto.route_name,
-                description = routeDto.description,
-                Clients = null  
-            };
-
-            await _routeService.CreateRouteAsync(newRoute);
-            return CreatedAtAction(nameof(GetRoute), new { id = newRoute.Id }, newRoute);
-        }
 
 
 
@@ -94,9 +76,9 @@ namespace CredipathAPI.Controllers
                 return NotFound();
             }
 
-            if (!string.IsNullOrWhiteSpace(routeDto.route_name))
+            if (!string.IsNullOrWhiteSpace(routeDto.name))
             {
-                existingRoute.route_name = routeDto.route_name;
+                existingRoute.route_name = routeDto.name;
             }
 
             if (!string.IsNullOrWhiteSpace(routeDto.description))
@@ -118,7 +100,6 @@ namespace CredipathAPI.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> DeleteRoute(int id)
         {
-
             if (!_routeService.RouteExists(id))
             {
                 return NotFound();
@@ -126,6 +107,56 @@ namespace CredipathAPI.Controllers
 
             await _routeService.DeleteRouteAsync(id);  
             return NoContent();
+        }
+
+        // POST: api/Route
+        [HttpPost("addRoutes")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<RouteResponseDTO>> PostRoute(RouteDTO routeDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new 
+                    { 
+                        success = false, 
+                        message = "Datos de entrada no válidos",
+                        errors = ModelState.Values
+                            .SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                    });
+                }
+
+                var createdRoute = await _routeService.CreateRouteAsync(routeDto);
+                
+                return CreatedAtAction(
+                    nameof(GetRoute), 
+                    new { id = createdRoute.Id }, 
+                    new 
+                    { 
+                        success = true,
+                        data = createdRoute,
+                        message = "Ruta creada exitosamente"
+                    });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new 
+                { 
+                    success = false, 
+                    message = ex.Message 
+                });
+            }
+            catch (Exception ex)
+            {
+                // En producción, registrar el error
+                return StatusCode(500, new 
+                { 
+                    success = false, 
+                    message = "Ocurrió un error al procesar la solicitud" 
+                });
+            }
         }
     }
 }
