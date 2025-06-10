@@ -10,6 +10,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Route = CredipathAPI.Model.Route;
+using System.Net;
 
 namespace CredipathAPI.Services
 {
@@ -67,10 +68,85 @@ namespace CredipathAPI.Services
             };
         }
 
+        public async Task<RouteResponseDTO> GetRouteByIdAsync(int id)
+        {
+            var route = await _context.Routes.FindAsync(id);
+            if (route == null) return null;
+
+            return new RouteResponseDTO
+            {
+                Id = route.Id,
+                Name = route.route_name,
+                Description = route.description,
+                District = route.District,
+                Location = route.Location,
+                Status = route.Active ? "active" : "inactive"
+            };
+        }
+
+        public async Task<ApiResponse<object>> UpdateRouteAsync(UpdateRouteDTO updateDto, int routeId)
+        {
+            try
+            {
+                // Find the existing route
+                var existingRoute = await _context.Routes.FindAsync(routeId);
+                if (existingRoute == null)
+                {
+                    return new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Ruta no encontrada"
+                    };
+                }
+
+                // Check if another route with the same name exists (case insensitive)
+                var duplicateRoute = await _context.Routes
+                    .FirstOrDefaultAsync(r => 
+                        r.Id != routeId && 
+                        r.route_name.ToLower() == updateDto.Name.ToLower());
+
+                if (duplicateRoute != null)
+                {
+                    return new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Ya existe una ruta con este nombre"
+                    };
+                }
+
+
+                // Update the route properties
+                existingRoute.route_name = updateDto.Name;
+                existingRoute.description = updateDto.Description;
+                existingRoute.District = updateDto.District;
+                existingRoute.Location = updateDto.Location;
+                existingRoute.Active = updateDto.Status.ToLower() == "active";
+                existingRoute.UpdatedAt = DateTime.UtcNow;
+
+                // Save changes
+                await _context.SaveChangesAsync();
+
+                return new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Ruta actualizada correctamente"
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log the error
+                return new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error al actualizar la ruta: " + ex.Message
+                };
+            }
+        }
+
         public async Task<PagedResponse<RouteResponseDTO>> GetPaginatedRoutesAsync(int page = 1, int pageSize = 10)
         {
             var query = _context.Routes
-                .Where(r => r.Active)
+                //.Where(r => r.Active)
                 .Select(r => new RouteResponseDTO
                 {
                     Id = r.Id,
@@ -104,10 +180,7 @@ namespace CredipathAPI.Services
             };
         }
 
-        public async Task<Model.Route> GetRouteByIdAsync(int id)
-        {
-            return await _context.Routes.FirstOrDefaultAsync(r => r.Id == id);
-        }
+      
 
         public async Task UpdateRouteAsync(Model.Route route)
         {

@@ -43,56 +43,46 @@ namespace CredipathAPI.Controllers
             });
         }
 
-        // GET: api/Route/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Model.Route>> GetRoute(int id)
+
+
+        // PUT: api/Route/updateRoute/5
+        [HttpPut("updateRoute/{id}")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateRoute(int id, [FromBody] UpdateRouteDTO updateDto)
         {
-            var route = await _routeService.GetRouteByIdAsync(id);
+            try
+            {            
+                // Call the service to update the route
+                var result = await _routeService.UpdateRouteAsync(updateDto, id);
 
-            if (route == null)
-            {
-                return NotFound();
+                // Return appropriate response based on service result
+                if (!result.Success)
+                {
+                    return BadRequest(new { 
+                        success = false, 
+                        message = result.Message 
+                    });
+                }
+
+
+                return Ok(new { 
+                    success = true,
+                    message = result.Message
+                });
             }
-
-            return Ok(route);
+            catch (Exception ex)
+            {
+                // Log the error
+                return StatusCode(StatusCodes.Status500InternalServerError, new { 
+                    success = false, 
+                    message = "Error interno del servidor al actualizar la ruta" 
+                });
+            }
         }
-
-
-
-
-
-        // POST: Route/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-
-        [HttpPut("{id}")]
-        [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> PutRoute(int id, RouteDTO routeDto)
-        {
-            var existingRoute = await _routeService.GetRouteByIdAsync(id);
-
-            if (existingRoute == null)
-            {
-                return NotFound();
-            }
-
-            if (!string.IsNullOrWhiteSpace(routeDto.name))
-            {
-                existingRoute.route_name = routeDto.name;
-            }
-
-            if (!string.IsNullOrWhiteSpace(routeDto.description))
-            {
-                existingRoute.description = routeDto.description;
-            }
-
-            existingRoute.UpdatedAt = DateTime.UtcNow;
-
-            await _routeService.UpdateRouteAsync(existingRoute);
-
-            return NoContent();
-        }
-
 
 
         // DELETE: api/Route/5
@@ -130,15 +120,12 @@ namespace CredipathAPI.Controllers
 
                 var createdRoute = await _routeService.CreateRouteAsync(routeDto);
                 
-                return CreatedAtAction(
-                    nameof(GetRoute), 
-                    new { id = createdRoute.Id }, 
-                    new 
-                    { 
-                        success = true,
-                        data = createdRoute,
-                        message = "Ruta creada exitosamente"
-                    });
+                return Ok(new 
+                { 
+                    success = true,
+                    data = createdRoute,
+                    message = "Ruta creada exitosamente"
+                });
             }
             catch (InvalidOperationException ex)
             {
