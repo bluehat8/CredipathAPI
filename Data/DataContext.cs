@@ -59,6 +59,13 @@ namespace CredipathAPI.Data
                 
             // Aplicar la configuración para evitar ciclos de relaciones en Collaborator
             CollaboratorModelConfiguration.Configure(modelBuilder);
+            
+            // Configurar la relación entre Route y User
+            modelBuilder.Entity<Model.Route>()
+                .HasOne(r => r.CreatedBy)
+                .WithMany()
+                .HasForeignKey(r => r.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

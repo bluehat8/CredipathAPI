@@ -25,11 +25,56 @@ namespace CredipathAPI.Services
 
         public async Task<List<Model.Route>> GetAllRoutesAsync()
         {
-            return await _context.Routes.Where(s =>s.Active).ToListAsync();
+            return await _context.Routes
+                .Where(s => s.Active)
+                .ToListAsync();
+        }
+        
+        public async Task<PagedResponse<RouteResponseDTO>> GetRoutesByCreatorAsync(int createdById, int page = 1, int pageSize = 10)
+        {
+            var query = _context.Routes
+                .Where(r => r.Active && r.CreatedById == createdById)
+                .OrderByDescending(r => r.CreatedAt);
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new RouteResponseDTO
+                {
+                    Id = r.Id,
+                    Name = r.route_name,
+                    Description = r.description,
+                    District = r.District,
+                    Location = r.Location,
+                    CreatedAt = r.CreatedAt,
+                    Status = r.Active ? "active" : "inactive"
+                })
+                .ToListAsync();
+
+            return new PagedResponse<RouteResponseDTO>
+            {
+                Items = items,
+                Pagination = new PaginationMetadata
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    Total = totalItems
+                }
+            };
         }
 
-        public async Task<RouteResponseDTO> CreateRouteAsync(RouteDTO routeDto)
+        public async Task<RouteResponseDTO> CreateRouteAsync(RouteDTO routeDto, int createdById)
         {
+            // Verificar que el usuario creador exista
+            var userExists = await _context.Users.AnyAsync(u => u.Id == createdById);
+            if (!userExists)
+            {
+                throw new InvalidOperationException("El usuario especificado no existe.");
+            }
+
             // Verificar si ya existe una ruta con el mismo nombre
             var existingRoute = await _context.Routes
                 .FirstOrDefaultAsync(r => r.route_name.ToLower() == routeDto.name.ToLower());
@@ -49,7 +94,8 @@ namespace CredipathAPI.Services
                 Location = routeDto.Location,
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                CreatedById = createdById
             };
 
             _context.Routes.Add(newRoute);

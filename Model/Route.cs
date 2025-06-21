@@ -6,6 +6,10 @@ namespace CredipathAPI.Model
 {
     public class Route : BaseEntity
     {
+        // Propiedad para rastrear qué usuario creó la ruta
+        public int? CreatedById { get; set; }
+        
+        public virtual User? CreatedBy { get; set; }
         [Required]
         [MaxLength(100)]
         public string route_name { get; set; } = string.Empty;

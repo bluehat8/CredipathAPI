@@ -12,6 +12,7 @@ using CredipathAPI.DTOs;
 using CredipathAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.Json.Serialization;
+using System.Security.Claims;
 
 namespace CredipathAPI.Controllers
 {
@@ -41,6 +42,44 @@ namespace CredipathAPI.Controllers
                 success = true,
                 data = response
             });
+        }
+        
+        // GET: api/Route/my-routes
+        [HttpGet("my-routes")]
+        [Authorize]
+        public async Task<IActionResult> GetMyRoutes(
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+                // Obtener el ID del usuario autenticado desde el claim 'id'
+                var userIdClaim = User.FindFirst("id")?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId) || userId == 0)
+                {
+                    return Unauthorized(new { success = false, message = "No se pudo identificar al usuario" });
+                }
+                
+                var response = await _routeService.GetRoutesByCreatorAsync(userId, page, pageSize);
+                
+                return Ok(new 
+                { 
+                    success = true,
+                    data = response
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new 
+                { 
+                    success = false, 
+                    message = "Ocurrió un error al obtener las rutas del usuario",
+                    error = ex.Message
+                });
+            }
         }
 
 
@@ -118,7 +157,15 @@ namespace CredipathAPI.Controllers
                     });
                 }
 
-                var createdRoute = await _routeService.CreateRouteAsync(routeDto);
+                // Obtener el ID del usuario autenticado desde el claim 'id'
+                var userIdClaim = User.FindFirst("id")?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId) || userId == 0)
+                {
+                    return Unauthorized(new { success = false, message = "No se pudo identificar al usuario" });
+                }
+                
+                // Crear la ruta con el ID del usuario que la está creando
+                var createdRoute = await _routeService.CreateRouteAsync(routeDto, userId);
                 
                 return Ok(new 
                 { 
@@ -138,10 +185,11 @@ namespace CredipathAPI.Controllers
             catch (Exception ex)
             {
                 // En producción, registrar el error
-                return StatusCode(500, new 
+                return StatusCode(StatusCodes.Status500InternalServerError, new 
                 { 
                     success = false, 
-                    message = "Ocurrió un error al procesar la solicitud" 
+                    message = "Ocurrió un error al procesar la solicitud",
+                    error = ex.Message
                 });
             }
         }
