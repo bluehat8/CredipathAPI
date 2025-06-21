@@ -44,6 +44,37 @@ namespace CredipathAPI.Controllers
             });
         }
         
+        // GET: api/Route/my-routes-simple
+        [HttpGet("get-routes-simple")]
+        [Authorize]
+        public async Task<IActionResult> GetMyRoutesSimple()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst("id")?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId) || userId == 0)
+                {
+                    return Unauthorized(new { success = false, message = "No se pudo identificar al usuario" });
+                }
+                var routes = await _routeService.GetUserRoutesSimpleAsync(userId);
+                
+                return Ok(new 
+                { 
+                    success = true,
+                    data = routes
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new 
+                { 
+                    success = false,
+                    message = "Error al obtener las rutas del usuario",
+                    error = ex.Message 
+                });
+            }
+        }
+
         // GET: api/Route/my-routes
         [HttpGet("my-routes")]
         [Authorize]

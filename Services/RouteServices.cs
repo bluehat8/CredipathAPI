@@ -30,6 +30,19 @@ namespace CredipathAPI.Services
                 .ToListAsync();
         }
         
+        public async Task<List<RouteSimpleDTO>> GetUserRoutesSimpleAsync(int userId)
+        {
+            return await _context.Routes
+                .Where(r => r.Active && r.CreatedById == userId)
+                .OrderBy(r => r.route_name)
+                .Select(r => new RouteSimpleDTO
+                {
+                    Id = r.Id,
+                    Name = r.route_name
+                })
+                .ToListAsync();
+        }
+
         public async Task<PagedResponse<RouteResponseDTO>> GetRoutesByCreatorAsync(int createdById, int page = 1, int pageSize = 10)
         {
             var query = _context.Routes

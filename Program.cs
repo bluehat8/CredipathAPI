@@ -107,10 +107,8 @@ builder.Services.AddAuthorization(options =>
 
 
 //Dependencies
-
-builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<RouteServices>();
-builder.Services.AddScoped<ClientService>();
 builder.Services.AddScoped<InterestTypeService>();
 builder.Services.AddScoped<PaymentFrequencyService>();
 builder.Services.AddScoped<PermissionServices>();
@@ -120,7 +118,6 @@ builder.Services.AddScoped<ViewExpectedvsRealityService>();
 builder.Services.AddScoped<LoanAmortizationService>();
 builder.Services.AddScoped<UserRouteService>();
 builder.Services.AddScoped<CollaboratorService>();
-builder.Services.AddScoped<ClientService>();
 
 
 
