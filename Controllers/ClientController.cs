@@ -1,120 +1,144 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CredipathAPI.Data;
-using CredipathAPI.Model;
+using CredipathAPI.DTOs;
 using CredipathAPI.Services;
-using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CredipathAPI.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ClientController : ControllerBase
     {
-        private readonly ClientService _clientService;
+        private readonly IClientService _clientService;
+        private readonly ILogger<ClientController> _logger;
 
-        public ClientController(ClientService clientService)
+        public ClientController(IClientService clientService, ILogger<ClientController> logger)
         {
             _clientService = clientService;
+            _logger = logger;
         }
 
-        // GET: api/Client
+        /// <summary>
+        /// Obtiene una lista paginada de clientes
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Client>>> GetClients()
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<ClientResponseDTO>>>> GetClients(
+            [FromQuery] ClientQueryParams queryParams)
         {
-            var clients = await _clientService.GetAllClientsAsync();
-            return Ok(clients);
+            try
+            {
+                var result = await _clientService.GetClientsAsync(queryParams);
+                return Ok(ApiResponse<PaginatedResponse<ClientResponseDTO>>.SuccessResponse(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener la lista de clientes");
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Ocurri贸 un error al procesar la solicitud"));
+            }
         }
 
-        // GET: api/Client/5
+        /// <summary>
+        /// Obtiene un cliente por su ID
+        /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Client>> GetClient(int id)
+        public async Task<ActionResult<ApiResponse<ClientResponseDTO>>> GetClient(int id)
         {
-            var client = await _clientService.GetClientByIdAsync(id);
-
-            if (client == null)
+            try
             {
-                return NotFound();
+                var client = await _clientService.GetClientByIdAsync(id);
+                return Ok(ApiResponse<ClientResponseDTO>.SuccessResponse(client));
             }
-
-            return Ok(client);
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error al obtener el cliente con ID {id}");
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Ocurri贸 un error al procesar la solicitud"));
+            }
         }
 
-        // POST: api/Client
-        [HttpPost]
-        public async Task<ActionResult<Client>> PostClient(Client client)
+        /// <summary>
+        /// Crea un nuevo cliente
+        /// </summary>
+        [HttpPost("register")]
+        public async Task<ActionResult<ApiResponse<ClientResponseDTO>>> CreateClient(CreateClientDTO clientDto)
         {
-            await _clientService.CreateClientAsync(client);
-            return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
+            try
+            {
+                var userId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
+                var createdClient = await _clientService.CreateClientAsync(clientDto, userId);
+                return CreatedAtAction(nameof(GetClient), new { id = createdClient.Id }, 
+                    ApiResponse<ClientResponseDTO>.SuccessResponse(createdClient, "Cliente creado exitosamente"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear el cliente");
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Ocurri贸 un error al crear el cliente"));
+            }
         }
 
-        // PUT: api/Client/5
+        /// <summary>
+        /// Actualiza un cliente existente
+        /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutClient(int id, Client client)
+        public async Task<IActionResult> UpdateClient(int id, UpdateClientDTO clientDto)
         {
-
-            var existingClient = await _clientService.GetClientByIdAsync(id);
-
-            if (existingClient == null)
+            try
             {
-                return NotFound();
+                await _clientService.UpdateClientAsync(id, clientDto);
+                return NoContent();
             }
-
-
-            if (client.name != "string")
+            catch (KeyNotFoundException ex)
             {
-                existingClient.name = client.name;
+                return NotFound(ApiResponse<object>.ErrorResponse(ex.Message));
             }
-            if (client.code != "string")
+            catch (InvalidOperationException ex)
             {
-                existingClient.code = client.code;
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
             }
-
-            if (client.phone != "string")
+            catch (Exception ex)
             {
-                existingClient.phone = client.phone;
+                _logger.LogError(ex, $"Error al actualizar el cliente con ID {id}");
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Ocurri贸 un error al actualizar el cliente"));
             }
-
-            if (client.email != "string")
-            {
-                existingClient.email = client.email;
-            }
-
-            if (client.notes != "string")
-            {
-                existingClient.notes = client.notes;
-            }
-
-            if (client.address != "string")
-            {
-                existingClient.address = client.address;
-            }
-
-            if (client.RouteId != 0)
-            {
-                existingClient.RouteId = client.RouteId;
-            }
-
-            await _clientService.UpdateClientsAsync(existingClient);
-            return NoContent();
         }
 
-        // DELETE: api/Client/5 (Eliminaci髇 suave)
+        /// <summary>
+        /// Elimina un cliente (eliminaci贸n l贸gica)
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteClient(int id)
         {
-            var deleted = await _clientService.DeleteClientAsync(id);
-            if (!deleted)
+            try
             {
-                return NotFound();
+                await _clientService.DeleteClientAsync(id);
+                return NoContent();
             }
-
-            return NoContent();
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error al eliminar el cliente con ID {id}");
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Ocurri贸 un error al eliminar el cliente"));
+            }
         }
     }
 }

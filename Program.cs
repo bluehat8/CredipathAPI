@@ -120,6 +120,7 @@ builder.Services.AddScoped<ViewExpectedvsRealityService>();
 builder.Services.AddScoped<LoanAmortizationService>();
 builder.Services.AddScoped<UserRouteService>();
 builder.Services.AddScoped<CollaboratorService>();
+builder.Services.AddScoped<ClientService>();
 
 
 
