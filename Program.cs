@@ -8,11 +8,14 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<DataContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnection") ?? throw new InvalidOperationException("Connection string 'YourDbContext' not found.")));
 
 builder.Services.AddDbContext<DataContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("SQLConnection") ??
+        throw new InvalidOperationException("Connection string 'SQLConnection' not found."),
+        sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()
+    )
+);
 
 // Add services to the container.
 

@@ -90,114 +90,99 @@ namespace CredipathAPI.Services
             if (dto == null)
                 throw new ArgumentNullException(nameof(dto));
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            // Usar la estrategia de ejecución con reintentos
+            var strategy = _context.Database.CreateExecutionStrategy();
             
-            try
+            return await strategy.ExecuteAsync(async () => 
             {
-                // Verificar si ya existe un usuario con el mismo email
-                if (await _context.Users.AnyAsync(u => u.email == dto.Email))
-                {
-                    _logger.LogWarning($"Intento de crear colaborador con email duplicado: {dto.Email}");
-                    throw new InvalidOperationException($"Ya existe un usuario con el email: {dto.Email}");
-                }
-
-                // Verificar si ya existe un usuario con el mismo username (usaremos el email como username)
-                if (await _context.Users.AnyAsync(u => u.username == dto.Email))
-                {
-                    _logger.LogWarning($"Intento de crear colaborador con username duplicado: {dto.Email}");
-                    throw new InvalidOperationException($"Ya existe un usuario con el username: {dto.Email}");
-                }
+                using var transaction = await _context.Database.BeginTransactionAsync();
                 
-                // Verificar si ya existe un colaborador con el mismo identificador
-                if (await _context.Collaborators.AnyAsync(c => c.Identifier == dto.Identifier))
+                try
                 {
-                    _logger.LogWarning($"Intento de crear colaborador con identificador duplicado: {dto.Identifier}");
-                    throw new InvalidOperationException($"Ya existe un colaborador con el identificador: {dto.Identifier}");
-                }
-                
-                // Convertir la estructura anidada de permisos a IDs de permisos
-                if (dto.Permissions != null)
-                {
-                    var permissionIds = await GetPermissionIdsFromNestedStructureAsync(dto.Permissions);
-                    if (permissionIds.Any())
+                    // Verificar si ya existe un usuario con el mismo email
+                    if (await _context.Users.AnyAsync(u => u.email == dto.Email))
                     {
-                        dto.PermissionIds.AddRange(permissionIds);
-                        // Eliminar duplicados si los hay
-                        dto.PermissionIds = dto.PermissionIds.Distinct().ToList();
+                        _logger.LogWarning($"Intento de crear colaborador con email duplicado: {dto.Email}");
+                        throw new InvalidOperationException($"Ya existe un usuario con el email: {dto.Email}");
                     }
-                }
 
-                // 1. Crear el usuario
-                var passwordHasher = new PasswordHasher<User>();
-                
-                var user = new User
-                {
-                    name = dto.Name,
-                    username = dto.Email,
-                    email = dto.Email,
-                    address = dto.Address,
-                    UserType = UserType.collaborator
-                };
-                
-                user.password = passwordHasher.HashPassword(user, dto.Password);
-                
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync(); 
-
-                // 2. Crear el colaborador asociado
-                var collaborator = new Collaborator
-                {
-                    Identifier = dto.Identifier,
-                    Phone = dto.Phone,
-                    Mobile = dto.Mobile,
-                    UserId = user.Id,
-                    CreatedById = creatorUserId
-                };
-
-                _context.Collaborators.Add(collaborator);
-                await _context.SaveChangesAsync();
-                
-                // 3. Asignar permisos al usuario creado
-                if ((dto.PermissionIds == null || dto.PermissionIds.Count == 0) && dto.Permissions != null)
-                {
-                    dto.PermissionIds = await GetPermissionIdsFromNestedStructureAsync(dto.Permissions);
-                }
-                if (dto.PermissionIds != null && dto.PermissionIds.Count > 0)
-                {
-                    foreach (var permissionId in dto.PermissionIds)
+                    // Verificar si ya existe un usuario con el mismo username (usaremos el email como username)
+                    if (await _context.Users.AnyAsync(u => u.username == dto.Email))
                     {
-                        if (await _context.Permissions.AnyAsync(p => p.Id == permissionId))
-                        {
-                            var userPermission = new UserPermission
-                            {
-                                UserId = user.Id,
-                                PermissionId = permissionId
-                            };
-                            _context.UserPermissions.Add(userPermission);
-                        }
+                        _logger.LogWarning($"Intento de crear colaborador con username duplicado: {dto.Email}");
+                        throw new InvalidOperationException($"Ya existe un usuario con el username: {dto.Email}");
                     }
-                    await _context.SaveChangesAsync();
-                }
-                
-                await transaction.CommitAsync();
-
-                // Cargar los datos relacionados para el mapeo
-                await _context.Entry(collaborator).Reference(c => c.User).LoadAsync();
-                await _context.Entry(collaborator).Reference(c => c.CreatedBy).LoadAsync();
-
-                _logger.LogInformation($"Colaborador creado con ID: {collaborator.Id}, asociado al usuario ID: {user.Id}");
-                return await GetMappedCollaboratorResponseAsync(collaborator);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                
-                if (ex is InvalidOperationException)
-                    throw;
                     
-                _logger.LogError(ex, "Error al crear colaborador");
-                throw;
-            }
+                    // Verificar si ya existe un colaborador con el mismo identificador
+                    if (await _context.Collaborators.AnyAsync(c => c.Identifier == dto.Identifier))
+                    {
+                        _logger.LogWarning($"Intento de crear colaborador con identificador duplicado: {dto.Identifier}");
+                        throw new InvalidOperationException($"Ya existe un colaborador con el identificador: {dto.Identifier}");
+                    }
+
+                    // 1. Crear el usuario
+                    var passwordHasher = new PasswordHasher<User>();
+                    
+                    var user = new User
+                    {
+                        name = dto.Name,
+                        username = dto.Email,
+                        email = dto.Email,
+                        address = dto.Address,
+                        UserType = UserType.collaborator
+                    };
+                    
+                    user.password = passwordHasher.HashPassword(user, dto.Password);
+                    
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync(); 
+
+                    // 2. Crear el colaborador asociado
+                    var collaborator = new Collaborator
+                    {
+                        Identifier = dto.Identifier,
+                        Phone = dto.Phone,
+                        Mobile = dto.Mobile,
+                        UserId = user.Id,
+                        CreatedById = creatorUserId
+                    };
+
+                    _context.Collaborators.Add(collaborator);
+                    await _context.SaveChangesAsync();
+                    
+                    // 3. Asignar permisos al usuario creado
+                    if (dto.PermissionIds != null && dto.PermissionIds.Count > 0)
+                    {
+                        foreach (var permissionId in dto.PermissionIds)
+                        {
+                            if (await _context.Permissions.AnyAsync(p => p.Id == permissionId))
+                            {
+                                var userPermission = new UserPermission
+                                {
+                                    UserId = user.Id,
+                                    PermissionId = permissionId
+                                };
+                                _context.UserPermissions.Add(userPermission);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+                    
+                    await transaction.CommitAsync();
+
+                    // Cargar los datos relacionados para el mapeo
+                    await _context.Entry(collaborator).Reference(c => c.User).LoadAsync();
+                    await _context.Entry(collaborator).Reference(c => c.CreatedBy).LoadAsync();
+
+                    _logger.LogInformation($"Colaborador creado con ID: {collaborator.Id}, asociado al usuario ID: {user.Id}");
+                    return await GetMappedCollaboratorResponseAsync(collaborator);
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         public async Task<CollaboratorResponseDTO> UpdateCollaboratorAsync(int id, CollaboratorUpdateDTO dto)
@@ -205,87 +190,103 @@ namespace CredipathAPI.Services
             if (dto == null)
                 throw new ArgumentNullException(nameof(dto));
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            // Usar la estrategia de ejecución con reintentos
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
             
-            try
-            {
-                var collaborator = await _context.Collaborators
-                    .Include(c => c.User)
-                    .FirstOrDefaultAsync(c => c.Id == id);
-
-                var passwordHasher = new PasswordHasher<User>();
-
-                if (collaborator == null)
+                try
                 {
-                    _logger.LogWarning($"Intento de actualizar colaborador inexistente con ID: {id}");
-                    throw new KeyNotFoundException($"No se encontró colaborador con ID: {id}");
-                }
-
-                if (!string.IsNullOrEmpty(dto.Identifier) && 
-                    await _context.Collaborators.AnyAsync(c => c.Identifier == dto.Identifier && c.Id != id))
-                {
-                    _logger.LogWarning($"Intento de actualizar colaborador con identificador duplicado: {dto.Identifier}");
-                    throw new InvalidOperationException($"Ya existe otro colaborador con el identificador: {dto.Identifier}");
-                }
-
-                Helper.UpdateIfNotEmpty(dto.Phone, value => collaborator.Phone = value);
-                Helper.UpdateIfNotEmpty(dto.Mobile, value => collaborator.Mobile = value);
-                Helper.UpdateIfNotEmpty(dto.Identifier, value => collaborator.Identifier = value);
+                    // Mover todas las operaciones de base de datos dentro de la transacción
+                    var collaborator = await _context.Collaborators
+                        .Include(c => c.User)
+                        .FirstOrDefaultAsync(c => c.Id == id);
 
 
-                if (collaborator.User != null)
-                {
-                    Helper.UpdateIfNotEmpty(dto.Name, value => collaborator.User.name = value);
-                    Helper.UpdateIfNotEmpty(dto.Email, value => collaborator.User.email = value);
-                    Helper.UpdateIfNotEmpty(dto.Address, value => collaborator.User.address = value);
-                    Helper.UpdateIfNotEmpty(dto.Password, value => collaborator.User.password = passwordHasher.HashPassword(collaborator.User, value));
-                }
-
-                if (dto.Permissions != null)
-                {
-                    await _context.UserPermissions
-                        .Where(up => up.UserId == collaborator.UserId)
-                        .ExecuteDeleteAsync();
-
-                    var validPermissions = await _context.Permissions
-                        .Where(p => dto.Permissions.Contains(p.Id))
-                        .Select(p => p.Id)
-                        .ToListAsync();
-
-                    _context.UserPermissions.AddRange(
-                        validPermissions.Select(permissionId => new UserPermission
-                        {
-                            UserId = collaborator.UserId,
-                            PermissionId = permissionId
-                        }));
-
-                    var invalidPermissions = dto.Permissions.Except(validPermissions);
-                    foreach (var invalidId in invalidPermissions)
+                    if (collaborator == null)
                     {
-                        _logger.LogWarning($"Permiso con ID {invalidId} no encontrado al actualizar colaborador {id}");
+                        _logger.LogWarning($"Intento de actualizar colaborador inexistente con ID: {id}");
+                        throw new KeyNotFoundException($"No se encontró colaborador con ID: {id}");
                     }
-                }
 
-                collaborator.UpdatedAt = DateTime.UtcNow;
+                    // Verificar duplicados de identificador
+                    if (!string.IsNullOrEmpty(dto.Identifier))
+                    {
+                        bool identifierExists = await _context.Collaborators
+                            .AnyAsync(c => c.Identifier == dto.Identifier && c.Id != id);
+                            
+                        if (identifierExists)
+                        {
+                            _logger.LogWarning($"Intento de actualizar colaborador con identificador duplicado: {dto.Identifier}");
+                            throw new InvalidOperationException($"Ya existe otro colaborador con el identificador: {dto.Identifier}");
+                        }
+                        collaborator.Identifier = dto.Identifier;
+                    }
 
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                
-                await _context.Entry(collaborator).Reference(c => c.CreatedBy).LoadAsync();
-                
-                _logger.LogInformation($"Colaborador actualizado con ID: {id}");
-                return await GetMappedCollaboratorResponseAsync(collaborator);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                
-                if (ex is KeyNotFoundException || ex is InvalidOperationException)
-                    throw;
+                    // Actualizar campos básicos
+                    Helper.UpdateIfNotEmpty(dto.Phone, value => collaborator.Phone = value);
+                    Helper.UpdateIfNotEmpty(dto.Mobile, value => collaborator.Mobile = value);
+
+                    // Actualizar datos de usuario si existen
+                    if (collaborator.User != null)
+                    {
+                        Helper.UpdateIfNotEmpty(dto.Name, value => collaborator.User.name = value);
+                        Helper.UpdateIfNotEmpty(dto.Email, value => collaborator.User.email = value);
+                        Helper.UpdateIfNotEmpty(dto.Address, value => collaborator.User.address = value);
+                        
+                        if (!string.IsNullOrEmpty(dto.Password))
+                        {
+                            var passwordHasher = new PasswordHasher<User>();
+                            collaborator.User.password = passwordHasher.HashPassword(collaborator.User, dto.Password);
+                        }
+                    }
+
+                    // Actualizar permisos si se proporcionaron
+                    if (dto.Permissions != null)
+                    {
+                        // Eliminar permisos actuales
+                        await _context.UserPermissions
+                            .Where(up => up.UserId == collaborator.UserId)
+                            .ExecuteDeleteAsync();
+
+                        // Obtener solo los IDs de permisos válidos
+                        var validPermissionIds = await _context.Permissions
+                            .Where(p => dto.Permissions.Contains(p.Id))
+                            .Select(p => p.Id)
+                            .ToListAsync();
+
+                        // Agregar los nuevos permisos
+                        foreach (var permissionId in validPermissionIds)
+                        {
+                            _context.UserPermissions.Add(new UserPermission
+                            {
+                                UserId = collaborator.UserId,
+                                PermissionId = permissionId
+                            });
+                        }
+
+                    }
+
+                    // Actualizar marca de tiempo
+                    collaborator.UpdatedAt = DateTime.UtcNow;
+
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
                     
-                _logger.LogError(ex, $"Error al actualizar colaborador con ID: {id}");
-                throw;
-            }
+                    await _context.Entry(collaborator).Reference(c => c.CreatedBy).LoadAsync();
+                    
+                    _logger.LogInformation($"Colaborador actualizado con ID: {id}");
+                    return await GetMappedCollaboratorResponseAsync(collaborator);
+                }
+                catch (Exception ex) when (ex is not (KeyNotFoundException or InvalidOperationException))
+                {
+                    _logger.LogError(ex, $"Error al actualizar colaborador con ID: {id}");
+                    throw;
+                }
+            });
         }
 
         public async Task DeleteCollaboratorAsync(int id)

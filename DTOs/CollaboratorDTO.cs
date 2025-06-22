@@ -31,11 +31,9 @@ namespace CredipathAPI.DTOs
         
         public string Role { get; set; } = "collaborator";
         
-        // Ahora se puede enviar como 'permissions' desde el cliente
+        // Permisos del colaborador (IDs de permisos)
         [JsonPropertyName("permissions")]
         public List<int>? PermissionIds { get; set; }
-        
-        public NestedPermissionsDTO Permissions { get; set; }
     }
     
     // DTO para la estructura anidada de permisos que viene del cliente
