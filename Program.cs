@@ -107,6 +107,7 @@ builder.Services.AddAuthorization(options =>
 
 
 //Dependencies
+builder.Services.AddScoped<UserService>();  
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<RouteServices>();
 builder.Services.AddScoped<InterestTypeService>();
