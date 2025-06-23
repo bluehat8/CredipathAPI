@@ -32,9 +32,9 @@ namespace CredipathAPI.Services
                 {
                     var searchTerm = queryParams.SearchTerm.ToLower();
                     query = query.Where(c => 
-                        (c.name != null && c.name.ToLower().Contains(searchTerm)) ||
-                        (c.email != null && c.email.ToLower().Contains(searchTerm)) ||
-                        (c.phone != null && c.phone.Contains(searchTerm)));
+                        (c.Name != null && c.Name.ToLower().Contains(searchTerm)) ||
+                        (c.Email != null && c.Email.ToLower().Contains(searchTerm)) ||
+                        (c.Phone != null && c.Phone.Contains(searchTerm)));
                 }
 
                 if (queryParams.RouteId.HasValue)
@@ -47,7 +47,7 @@ namespace CredipathAPI.Services
 
                 // Aplicar paginación
                 var clients = await query
-                    .OrderBy(c => c.name)
+                    .OrderBy(c => c.Name)
                     .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
                     .Take(queryParams.PageSize)
                     .Select(c => MapToClientResponse(c))
@@ -94,14 +94,21 @@ namespace CredipathAPI.Services
         {
             try
             {
-                // Validar que el correo no esté en uso
-                if (await _context.Clients.AnyAsync(c => c.email == clientDto.Email && c.Active))
+                // Validar que la identificación no esté en uso
+                if (await _context.Clients.AnyAsync(c => c.Identification == clientDto.Identification && c.Active))
+                {
+                    throw new InvalidOperationException("La identificación ya está en uso");
+                }
+
+                // Validar que el correo no esté en uso si se proporciona
+                if (!string.IsNullOrEmpty(clientDto.Email) && 
+                    await _context.Clients.AnyAsync(c => c.Email == clientDto.Email && c.Active))
                 {
                     throw new InvalidOperationException("El correo electrónico ya está en uso");
                 }
 
                 // Validar que el teléfono no esté en uso
-                if (await _context.Clients.AnyAsync(c => c.phone == clientDto.Cellphone && c.Active))
+                if (await _context.Clients.AnyAsync(c => c.Phone == clientDto.Phone && c.Active))
                 {
                     throw new InvalidOperationException("El número de celular ya está en uso");
                 }
@@ -115,14 +122,21 @@ namespace CredipathAPI.Services
 
                 var client = new Client
                 {
-                    name = clientDto.Name,
-                    code = clientDto.Lastname,
-                    email = clientDto.Email,
-                    phone = clientDto.Cellphone,
-                    address = clientDto.Direction,
-                    notes = clientDto.Note,
+                    Identification = clientDto.Identification,
+                    Name = clientDto.Name,
+                    Code = clientDto.Code,
+                    Email = clientDto.Email,
+                    Phone = clientDto.Phone,
+                    LandlinePhone = clientDto.LandlinePhone,
+                    HomeAddress = clientDto.HomeAddress,
+                    BusinessAddress = clientDto.BusinessAddress,
+                    Gender = clientDto.Gender,
+                    Municipality = clientDto.Municipality,
+                    City = clientDto.City,
+                    Neighborhood = clientDto.Neighborhood,
+                    Notes = clientDto.Notes,
                     RouteId = clientDto.RouteId,
-                    creator = createdById,
+                    CreatorId = createdById,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     Active = true
@@ -155,16 +169,17 @@ namespace CredipathAPI.Services
                     throw new KeyNotFoundException("Cliente no encontrado");
                 }
 
-                // Validar que el correo no esté en uso por otro cliente
-                if (await _context.Clients.AnyAsync(c => c.Id != id && c.email == clientDto.Email && c.Active))
+                // Validar que la identificación no esté en uso por otro cliente
+                if (await _context.Clients.AnyAsync(c => c.Id != id && c.Identification == clientDto.Identification && c.Active))
                 {
-                    throw new InvalidOperationException("El correo electrónico ya está en uso");
+                    throw new InvalidOperationException("La identificación ya está en uso");
                 }
 
-                // Validar que el teléfono no esté en uso por otro cliente
-                if (await _context.Clients.AnyAsync(c => c.Id != id && c.phone == clientDto.Cellphone && c.Active))
+                // Validar que el correo no esté en uso por otro cliente (si se proporciona)
+                if (!string.IsNullOrEmpty(clientDto.Email) && 
+                    await _context.Clients.AnyAsync(c => c.Id != id && c.Email == clientDto.Email && c.Active))
                 {
-                    throw new InvalidOperationException("El número de celular ya está en uso");
+                    throw new InvalidOperationException("El correo electrónico ya está en uso");
                 }
 
                 // Validar que la ruta exista
@@ -175,12 +190,19 @@ namespace CredipathAPI.Services
                 }
 
                 // Actualizar propiedades
-                client.name = clientDto.Name;
-                client.code = clientDto.Lastname;
-                client.email = clientDto.Email;
-                client.phone = clientDto.Cellphone;
-                client.address = clientDto.Direction;
-                client.notes = clientDto.Note;
+                client.Identification = clientDto.Identification;
+                client.Name = clientDto.Name;
+                client.Code = clientDto.Code;
+                client.Email = clientDto.Email;
+                client.Phone = clientDto.Phone;
+                client.LandlinePhone = clientDto.LandlinePhone;
+                client.HomeAddress = clientDto.HomeAddress;
+                client.BusinessAddress = clientDto.BusinessAddress;
+                client.Gender = clientDto.Gender;
+                client.Municipality = clientDto.Municipality;
+                client.City = clientDto.City;
+                client.Neighborhood = clientDto.Neighborhood;
+                client.Notes = clientDto.Notes;
                 client.RouteId = clientDto.RouteId;
                 client.UpdatedAt = DateTime.UtcNow;
 
@@ -240,15 +262,21 @@ namespace CredipathAPI.Services
             return new ClientResponseDTO
             {
                 Id = client.Id,
-                Name = client.name ?? string.Empty,
-                Lastname = client.code ?? string.Empty,
+                Identification = client.Identification,
+                Name = client.Name,
+                Code = client.Code,
                 RouteId = client.RouteId ?? 0,
                 RouteName = client.Route?.route_name ?? string.Empty,
-                Direction = client.address ?? string.Empty,
-                Cellphone = client.phone ?? string.Empty,
-                Email = client.email ?? string.Empty,
-                Note = client.notes,
-                LandlinePhone = null, // No hay campo en el modelo actual
+                HomeAddress = client.HomeAddress,
+                BusinessAddress = client.BusinessAddress,
+                Gender = client.Gender,
+                Municipality = client.Municipality,
+                City = client.City,
+                Neighborhood = client.Neighborhood,
+                Email = client.Email,
+                Phone = client.Phone,
+                LandlinePhone = client.LandlinePhone,
+                Notes = client.Notes,
                 CreatedAt = client.CreatedAt,
                 UpdatedAt = client.UpdatedAt
             };
