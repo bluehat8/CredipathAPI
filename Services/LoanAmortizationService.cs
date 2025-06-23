@@ -66,8 +66,8 @@ namespace CredipathAPI.Services
                                                   LoanAmount = l.amount,
                                                   PaymentNumber = la.PaymentNumber,
                                                   ClientId = u.Id,
-                                                  ClientName = u.name,
-                                                  Code = u.code
+                                                  ClientName = u.Name,
+                                                  Code = u.Code
                                               }).ToListAsync();
 
             return overdueAmortizations;
@@ -93,7 +93,7 @@ namespace CredipathAPI.Services
                                     PaymentAmount = la.PaymentAmount,
                                     PaymentDate = la.PaymentDate,
                                     PaymentStatus = Helper.GetPaymentStatusText(la.PaymentStatus),
-                                    PayerName = u.name,
+                                    PayerName = u.Name,
                                     PaymentNumber = la.PaymentNumber,
                                     RouteName = route != null ? route.route_name : "Sin ruta asignada"
                                 };
@@ -122,8 +122,8 @@ namespace CredipathAPI.Services
                                  LoanAmount = l.amount,
                                  LoanDate = l.loan_date,
                                  LoanInstallments = l.installments,
-                                 ClientName = u.name,
-                                 ClientCode = u.code,
+                                 ClientName = u.Name,
+                                 ClientCode = u.Code,
                                  RouteName = route != null ? route.route_name : "Sin ruta asignada"
                              };
 
@@ -153,11 +153,11 @@ namespace CredipathAPI.Services
                                     LoanId = l.Id,
                                 
                                     LoanAmount = l.amount,
-                                    ClientName = u.name,
+                                    ClientName = u.Name,
                                     PaymentAmount = la.PaymentAmount,
                                     PaymentDate = la.PaymentDate,
                                     PaymentStatus = Helper.GetPaymentStatusText(la.PaymentStatus),
-                                    PayerName = u.name,
+                                    PayerName = u.Name,
                                     TransactionType = "Pago",
                                     PaymentNumber = la.PaymentNumber,
                                     RouteName = route != null ? route.route_name : "Sin ruta asignada"
@@ -176,7 +176,7 @@ namespace CredipathAPI.Services
                              {
                                  LoanId = l.Id,
                                  LoanAmount = l.amount,
-                                 ClientName = u.name,
+                                 ClientName = u.Name,
                                  PaymentAmount = 0, // No hay monto de pago para los préstamos
                                  PaymentDate = l.loan_date,
                                  PaymentStatus = Helper.GetPaymentStatusText(PaymentStatus.pending),
