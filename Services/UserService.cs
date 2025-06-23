@@ -1,4 +1,5 @@
-﻿using CredipathAPI.Data;
+using CredipathAPI.Data;
+using CredipathAPI.DTOs;
 using CredipathAPI.Helpers;
 using CredipathAPI.Model;
 using Microsoft.AspNetCore.Identity;
@@ -60,25 +61,54 @@ namespace CredipathAPI.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<User> RegisterUserAsync(User user, string password)
+        public async Task<ApiResponse<User>> RegisterUserAsync(User user, string password)
         {
-            var existingEmailUser = await _context.Users.FirstOrDefaultAsync(u => u.email == user.email);
-            if (existingEmailUser != null)
+            try
             {
-                throw new Exception("El email ya está en uso.");
-            }
+                var existingEmailUser = await _context.Users.FirstOrDefaultAsync(u => u.email == user.email);
+                if (existingEmailUser != null)
+                {
+                    return new ApiResponse<User>
+                    {
+                        Success = false,
+                        Message = "El email ya está en uso.",
+                        Data = default
+                    };
+                }
 
-            var existingUsernameUser = await _context.Users.FirstOrDefaultAsync(u => u.username == user.username);
-            if (existingUsernameUser != null)
+                var existingUsernameUser = await _context.Users.FirstOrDefaultAsync(u => u.username == user.username);
+                if (existingUsernameUser != null)
+                {
+                    return new ApiResponse<User>
+                    {
+                        Success = false,
+                        Message = "El username ya está en uso.",
+                        Data = default
+                    };
+                }
+
+                var passwordHasher = new PasswordHasher<User>();
+                user.password = passwordHasher.HashPassword(user, password);
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+                
+                return new ApiResponse<User>
+                {
+                    Success = true,
+                    Message = "Usuario registrado exitosamente",
+                    Data = user
+                };
+            }
+            catch (Exception ex)
             {
-                throw new Exception("El username ya está en uso.");
+                // Log the error if you have a logger
+                return new ApiResponse<User>
+                {
+                    Success = false,
+                    Message = "Error al registrar el usuario: " + ex.Message,
+                    Data = default
+                };
             }
-
-            var passwordHasher = new PasswordHasher<User>();
-            user.password = passwordHasher.HashPassword(user, password);
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return user;
         }
         public async Task<User> RegisterCollaboratorAsync(UserDTO dto)
         {

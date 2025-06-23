@@ -1,3 +1,4 @@
+using CredipathAPI.DTOs;
 using CredipathAPI.Helpers;
 using CredipathAPI.Model;
 using CredipathAPI.Services;
@@ -23,30 +24,29 @@ namespace CredipathAPI.Controllers
         {
             if (dto == null)
             {
-                return BadRequest("Los datos de usuario son requeridos.");
+                return BadRequest(ApiResponse<object>.ErrorResponse("Los datos de usuario son requeridos."));
             }
 
-            try
+            var user = new User
             {
-                var user = new User
-                {
-                    name = dto.Name,
-                    username = dto.Username,
-                    email = dto.Email,
-                    password = dto.Password,
-                    note = dto.Note,
-                    address = dto.Address,
-                    code = dto.Code,
-                    UserType = Constants.UserType.admin,
-                };
+                name = dto.Name,
+                username = dto.Username,
+                email = dto.Email,
+                password = dto.Password,
+                note = dto.Note,
+                address = dto.Address,
+                code = dto.Code,
+                UserType = Constants.UserType.admin,
+            };
 
-                var registeredUser = await _userService.RegisterUserAsync(user, dto.Password);
-                return Ok(registeredUser);
-            }
-            catch (Exception ex)
+            var result = await _userService.RegisterUserAsync(user, dto.Password);
+            
+            if (!result.Success)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(result);
             }
+            
+            return Ok(result);
         }
 
         [HttpPost]
